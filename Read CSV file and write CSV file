@@ -40,3 +40,77 @@ public class CsvProcessingController {
       }
    }
 }
+
+
+
+second logic
+
+step 1 read a database from database table
+@Service
+public class DataService {
+
+   @Autowired
+   private YourEntityRepository entityRepository;
+
+   public List<YourEntity> fetchDataFromDatabase() {
+      // Use your repository to fetch data from the database
+      return entityRepository.findAll();
+   }
+}
+
+step 2 process data
+@Service
+public class DataProcessingService {
+
+   public List<String> process(List<YourEntity> data) {
+      // Perform your data processing here
+      // For example, convert entities to strings
+      return data.stream()
+            .map(entity -> entity.getField1() + "," + entity.getField2())
+            .collect(Collectors.toList());
+   }
+}
+
+step 3 write csv 
+@Service
+public class CsvWriterService {
+
+   public void writeToCsv(List<String> processedData, String filePath) {
+      try (PrintWriter writer = new PrintWriter(filePath)) {
+         processedData.forEach(writer::println);
+      } catch (FileNotFoundException e) {
+         // Handle exception
+      }
+   }
+}
+
+
+step 4 controller
+@RestController
+@RequestMapping("/api")
+public class DataController {
+
+   @Autowired
+   private DataService dataService;
+
+   @Autowired
+   private DataProcessingService processingService;
+
+   @Autowired
+   private CsvWriterService csvWriterService;
+
+   @GetMapping("/processAndWriteToCsv")
+   public ResponseEntity<String> processAndWriteToCsv(@RequestParam String filePath) {
+      // Fetch data from the database
+      List<YourEntity> data = dataService.fetchDataFromDatabase();
+
+      // Process the data
+      List<String> processedData = processingService.process(data);
+
+      // Write to CSV
+      csvWriterService.writeToCsv(processedData, filePath);
+
+      return ResponseEntity.ok("Data processed and written to CSV successfully");
+   }
+}
+
