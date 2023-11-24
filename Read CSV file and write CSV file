@@ -1,0 +1,42 @@
+step 1 read csv file
+
+CSVReader reader = new CSVReader(new FileReader("path/to/your/input.csv"));
+List<String[]> csvData = reader.readAll();
+
+step 2 process and fetch detabase data 
+for (String[] row : csvData) {
+   // Process each row and fetch additional data from the database
+   String csvColumn = row[0];
+   YourEntity entity = yourEntityRepository.findByColumn(csvColumn);
+   // Perform processing and database fetching as needed
+}
+
+step 3 write a csv file 
+
+CSVWriter writer = new CSVWriter(new FileWriter("path/to/your/output.csv"));
+// Write processed data to the new CSV file
+writer.writeAll(processedData);
+writer.close();
+
+step 4 Creat a rest api
+
+@RestController
+@RequestMapping("/api/csv")
+public class CsvProcessingController {
+
+   @Autowired
+   private YourEntityRepository yourEntityRepository;
+
+   @PostMapping("/process")
+   public ResponseEntity<String> processCsvData() {
+      try {
+         // Read, process, fetch from the database, and write to a new CSV file
+         // Implement the steps mentioned above
+
+         return ResponseEntity.ok("CSV data processed successfully");
+      } catch (Exception e) {
+         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+               .body("Error processing CSV data: " + e.getMessage());
+      }
+   }
+}
