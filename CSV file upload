@@ -90,3 +90,7 @@ spring.servlet.multipart.max-request-size=10MB
 
 # Set the directory where uploaded files will be stored
 upload.directory=/path/to/upload/directory
+
+
+calling api
+curl -X POST -H "Content-Type: multipart/form-data" -F "file=@/path/to/your/file.csv" http://localhost:8080/api/csv/upload
