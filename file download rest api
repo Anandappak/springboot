@@ -1,0 +1,32 @@
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Controller
+@RequestMapping("/api/files")
+public class FileDownloadController {
+
+    @GetMapping("/download")
+    public ResponseEntity<Resource> downloadFile() throws IOException {
+        String fileName = "example.txt";
+        Path path = Paths.get("files", fileName);
+
+        Resource resource = new ClassPathResource(path.toString());
+        byte[] fileContent = Files.readAllBytes(path);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
+    }
+}
