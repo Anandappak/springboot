@@ -1,0 +1,89 @@
+To achieve this in a Spring Boot application, you can use the AWS SDK for Java to interact with S3, and Apache Commons IO along with GZIPInputStream to handle the gzip compression. Here's a simplified exam
+Add dependencies to your pom.xml:
+
+<dependencies>
+    <!-- Spring Boot Starter Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- AWS SDK for Java -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>aws-sdk-s3</artifactId>
+    </dependency>
+
+    <!-- Apache Commons IO -->
+    <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+    </dependency>
+</dependencies>
+
+
+Create a service to interact with S3 and handle the gzip file:
+
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import org.apache.commons.io.IOUtils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.zip.GZIPInputStream;
+
+@Service
+public class S3Service {
+
+    private final S3Client s3Client;
+    private final String bucketName;
+
+    @Autowired
+    public S3Service(S3Client s3Client, @Value("${aws.s3.bucketName}") String bucketName) {
+        this.s3Client = s3Client;
+        this.bucketName = bucketName;
+    }
+
+    public String readGzipFile(String key) throws IOException {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        try (S3Object s3Object = s3Client.getObject(getObjectRequest);
+             GZIPInputStream gzipInputStream = new GZIPInputStream(s3Object.getObjectContent());
+             BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream))) {
+
+            return IOUtils.toString(reader);
+        }
+    }
+}
+
+
+Create a controller to expose a REST API endpoint:
+
+@RestController
+@RequestMapping("/api")
+public class S3Controller {
+
+    private final S3Service s3Service;
+
+    @Autowired
+    public S3Controller(S3Service s3Service) {
+        this.s3Service = s3Service;
+    }
+
+    @GetMapping("/read-gzip-file")
+    public ResponseEntity<String> readGzipFile(@RequestParam String key) {
+        try {
+            String content = s3Service.readGzipFile(key);
+            return ResponseEntity.ok(content);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error reading file: " + e.getMessage());
+        }
+    }
+}
+
+
+
