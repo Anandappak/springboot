@@ -1,0 +1,54 @@
+To search for S3 bucket keys containing a specific string using Spring Boot, you can modify the S3Service class to include a method for searching keys. Here's an example:
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class S3Service {
+
+    @Value("${aws.s3.bucketName}")
+    private String bucketName;
+
+    private final S3Client s3Client;
+
+    @Autowired
+    public S3Service(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public List<String> searchKeys(String searchString) {
+        ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(searchString) // Use prefix to filter keys
+                .build();
+
+        ListObjectsV2Response listObjectsResponse = s3Client.listObjectsV2(listObjectsRequest);
+        List<S3Object> s3Objects = listObjectsResponse.contents();
+
+        return s3Objects.stream()
+                .map(S3Object::key)
+                .collect(Collectors.toList());
+    }
+}
+
+You can then expose an API in your controller to use this method
+@RestController
+@RequestMapping("/api")
+public class S3Controller {
+
+    private final S3Service s3Service;
+
+    @Autowired
+    public S3Controller(S3Service s3Service) {
+        this.s3Service = s3Service;
+    }
+
+    @GetMapping("/searchKeys/{searchString}")
+    public List<String> searchKeys(@PathVariable String searchString) {
+        return s3Service.searchKeys(searchString);
+    }
+}
