@@ -1,0 +1,53 @@
+aws-s3-bucket global search
+
+service
+import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CommonPrefix;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+
+@Service
+public class S3Service {
+
+    @Value("${aws.s3.bucketName}")
+    private String bucketName;
+
+    public List<String> searchS3Folders(String searchTerm) {
+        S3Client s3Client = S3Client.builder()
+            .region(Region.US_EAST_1) // Set your AWS region
+            .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+            .build();
+
+        ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
+            .bucket(bucketName)
+            .prefix(searchTerm)
+            .delimiter("/")
+            .build();
+
+        ListObjectsV2Response listObjectsResponse = s3Client.listObjectsV2(listObjectsRequest);
+
+        return listObjectsResponse.commonPrefixes().stream()
+            .map(CommonPrefix::prefix)
+            .collect(Collectors.toList());
+    }
+}
+
+controller
+@RestController
+@RequestMapping("/s3/search")
+public class S3SearchController {
+
+    @Autowired
+    private S3Service s3Service;
+
+    @GetMapping("/folders/{searchTerm}")
+    public List<String> searchS3Folders(@PathVariable String searchTerm) {
+        return s3Service.searchS3Folders(searchTerm);
+    }
+}
+properties 
+aws.accessKeyId=your_access_key_id
+aws.secretKey=your_secret_access_key
+aws.region=your_region
+
