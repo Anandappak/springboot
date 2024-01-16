@@ -1,0 +1,210 @@
+1)Json Array node creation
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public class JsonArrayNodeExample {
+
+    public static void main(String[] args) {
+        // Create ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Create an ArrayNode
+        ArrayNode arrayNode = objectMapper.createArrayNode();
+
+        // Create a JSON node (ObjectNode)
+        ObjectNode jsonNode1 = createJsonNode("name1", "value1");
+        // Add the JSON node to the ArrayNode
+        arrayNode.add(jsonNode1);
+
+        // Create another JSON node (ObjectNode)
+        ObjectNode jsonNode2 = createJsonNode("name2", "value2");
+        // Add the second JSON node to the ArrayNode
+        arrayNode.add(jsonNode2);
+
+        // Convert ArrayNode to JSON string for demonstration
+        String jsonArrayString = arrayNode.toPrettyString();
+        System.out.println(jsonArrayString);
+    }
+
+    private static ObjectNode createJsonNode(String key, String value) {
+        // Create an ObjectNode
+        ObjectNode jsonNode = JsonNodeFactory.instance.objectNode();
+        // Put key-value pair in the ObjectNode
+        jsonNode.put(key, value);
+        return jsonNode;
+    }
+}
+
+2)object to string 
+public class ExampleObject {
+    private String name;
+    private int age;
+
+    // Constructor, getters, setters, etc.
+
+    @Override
+    public String toString() {
+        return "ExampleObject{" +
+               "name='" + name + '\'' +
+               ", age=" + age +
+               '}';
+    }
+
+    public static void main(String[] args) {
+        ExampleObject myObject = new ExampleObject("John", 25);
+        String objectString = myObject.toString();
+
+        System.out.println(objectString);
+    }
+}
+3)object to json
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+public class ExampleObjectToJson {
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ExampleObject myObject = new ExampleObject("Jane", 30);
+
+        // Convert object to JSON string
+        String jsonString = objectMapper.writeValueAsString(myObject);
+
+        System.out.println(jsonString);
+    }
+}
+4)json node loop
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+public class JsonNodeLoopExample {
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Example JSON string
+        String jsonString = "{\"data\": [{\"name\": \"John\", \"age\": 25}, {\"name\": \"Jane\", \"age\": 30}]}";
+
+        // Parse JSON string to JsonNode
+        JsonNode rootNode = objectMapper.readTree(jsonString);
+
+        // Check if the root is an object and has a "data" field
+        if (rootNode.isObject() && rootNode.has("data")) {
+            JsonNode dataArray = rootNode.get("data");
+
+            // Check if "data" is an array
+            if (dataArray.isArray()) {
+                // Iterate over array elements
+                for (JsonNode dataElement : dataArray) {
+                    // Access fields within each array element
+                    String name = dataElement.get("name").asText();
+                    int age = dataElement.get("age").asInt();
+
+                    // Do something with the data (print here for demonstration)
+                    System.out.println("Name: " + name + ", Age: " + age);
+                }
+            }
+        }
+    }
+}
+5)separate ke values
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+public class SeparateKeysExample {
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Example JSON string representing an object
+        String jsonString = "{\"name\": \"John\", \"age\": 25, \"city\": \"New York\"}";
+
+        // Parse JSON string to JsonNode
+        JsonNode jsonNode = objectMapper.readTree(jsonString);
+
+        // Convert JsonNode to Map
+        Map<String, JsonNode> jsonMap = objectMapper.convertValue(jsonNode, Map.class);
+
+        // Extract keys into a list
+        List<String> keyList = new ArrayList<>(jsonMap.keySet());
+
+        // Print the list of keys
+        System.out.println("Keys: " + keyList);
+    }
+}
+
+6)object values list 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class ObjectValuesToListExample {
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Example JSON string representing an object
+        String jsonString = "{\"name\": \"John\", \"age\": 25, \"city\": \"New York\"}";
+
+        // Parse JSON string to JsonNode
+        JsonNode jsonNode = objectMapper.readTree(jsonString);
+
+        // Convert JsonNode to Map
+        Map<String, JsonNode> jsonMap = objectMapper.convertValue(jsonNode, Map.class);
+
+        // Extract values into a list
+        List<JsonNode> valueList = new ArrayList<>(jsonMap.values());
+
+        // Print the list of values
+        System.out.println("Values: " + valueList);
+    }
+}
+7)json node remove 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public class JsonNodeRemoveObjectExample {
+
+    public static void main(String[] args) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Example JSON string representing an array of objects
+        String jsonString = "[{\"name\": \"John\", \"age\": 25}, {\"name\": \"Jane\", \"age\": 30}]";
+
+        // Parse JSON string to ArrayNode
+        ArrayNode arrayNode = (ArrayNode) objectMapper.readTree(jsonString);
+
+        // Remove object with name "John"
+        JsonNode filteredArrayNode = removeObjectByName(arrayNode, "John");
+
+        // Convert the filtered ArrayNode to a JSON string for demonstration
+        String filteredJsonString = filteredArrayNode.toPrettyString();
+        System.out.println(filteredJsonString);
+    }
+
+    private static JsonNode removeObjectByName(ArrayNode arrayNode, String nameToRemove) {
+        // Create a new ArrayNode without the object to remove
+        ArrayNode filteredArrayNode = arrayNode.arrayNode();
+
+        // Iterate through the original array and add objects to the new array, excluding the specified one
+        for (JsonNode objectNode : arrayNode) {
+            if (!nameToRemove.equals(objectNode.get("name").asText())) {
+                filteredArrayNode.add(objectNode);
+            }
+        }
+
+        return filteredArrayNode;
+    }
+}
