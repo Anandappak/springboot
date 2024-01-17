@@ -208,3 +208,44 @@ public class JsonNodeRemoveObjectExample {
         return filteredArrayNode;
     }
 }
+
+8)Json node date filter
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List<JsonNode> jsonNodesList = new ArrayList<>();
+
+        // Add JsonNode objects to jsonNodesList
+
+        List<JsonNode> filteredList = new ArrayList<>();
+
+        // Current time
+        Date currentTime = new Date();
+
+        // Filter elements less than or equal to 2 hours
+        for (JsonNode jsonNode : jsonNodesList) {
+            // Assuming "date" is the property holding the date in the JsonNode
+            String dateString = jsonNode.get("date").asText();
+
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+                Date date = sdf.parse(dateString);
+
+                // Check if the date is within 2 hours from the current time
+                if (currentTime.getTime() - date.getTime() <= 2 * 60 * 60 * 1000) {
+                    filteredList.add(jsonNode);
+                }
+            } catch (Exception e) {
+                e.printStackTrace(); // Handle parsing exceptions
+            }
+        }
+
+        // Now filteredList contains JsonNode objects with dates within 2 hours from the current time
+    }
+}
