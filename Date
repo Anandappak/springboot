@@ -1,0 +1,15 @@
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+
+public class LocalDateToTimestamp {
+    public static void main(String[] args) {
+        // Get the current local date
+        LocalDate localDate = LocalDate.now();
+
+        // Convert local date to timestamp integer value (seconds since Unix epoch)
+        long timestamp = localDate.atStartOfDay(ZoneOffset.UTC).toEpochSecond();
+
+        System.out.println("Local Date: " + localDate);
+        System.out.println("Timestamp: " + timestamp);
+    }
+}
