@@ -1,0 +1,43 @@
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AmazonS3Config {
+
+    @Value("${bucket1.accessKey}")
+    private String bucket1AccessKey;
+
+    @Value("${bucket1.secretKey}")
+    private String bucket1SecretKey;
+
+    @Value("${bucket2.accessKey}")
+    private String bucket2AccessKey;
+
+    @Value("${bucket2.secretKey}")
+    private String bucket2SecretKey;
+
+    @Bean(name = "s3ClientForBucket1")
+    public AmazonS3 amazonS3ClientForBucket1() {
+        BasicAWSCredentials credentials = new BasicAWSCredentials(bucket1AccessKey, bucket1SecretKey);
+
+        return AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .withRegion("your-region")
+                .build();
+    }
+
+    @Bean(name = "s3ClientForBucket2")
+    public AmazonS3 amazonS3ClientForBucket2() {
+        BasicAWSCredentials credentials = new BasicAWSCredentials(bucket2AccessKey, bucket2SecretKey);
+
+        return AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .withRegion("your-region")
+                .build();
+    }
+}
