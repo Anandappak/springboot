@@ -88,3 +88,55 @@ class MyObject {
         return "ID: " + id + ", Name: " + name + ", Address: " + address;
     }
 }
+ex :3
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+class ObjectParameter {
+    private int id;
+    private String name;
+    private String address;
+
+    public ObjectParameter(int id, String name, String address) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+    }
+
+    // Getters and setters
+    // Depending on your IDE or using Lombok, you may generate these automatically
+    // For simplicity, I'm not including them here
+
+    // Override equals and hashCode methods based on ID for HashSet or HashMap
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ObjectParameter that = (ObjectParameter) o;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List<ObjectParameter> objects = new ArrayList<>();
+        // Add objects to the list
+
+        // To make objects unique based on ID, use a HashSet
+        Set<ObjectParameter> uniqueObjects = new HashSet<>(objects);
+
+        // If you want to maintain the order, you can use a LinkedHashMap
+        // Map<Integer, ObjectParameter> uniqueObjectsMap = new LinkedHashMap<>();
+        // for (ObjectParameter obj : objects) {
+        //     uniqueObjectsMap.putIfAbsent(obj.getId(), obj);
+        // }
+    }
+}
+
