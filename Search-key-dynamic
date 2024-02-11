@@ -1,0 +1,41 @@
+dynamic search
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class S3Service {
+
+    @Autowired
+    private AmazonS3 amazonS3;
+
+    public List<String> searchObjectsByName(String name) {
+        List<String> objectKeys = new ArrayList<>();
+
+        ListObjectsV2Request request = new ListObjectsV2Request()
+                .withBucketName("your-bucket-name")
+                .withPrefix("date/address/");
+
+        ListObjectsV2Result result;
+        do {
+            result = amazonS3.listObjectsV2(request);
+
+            for (S3ObjectSummary objectSummary : result.getObjectSummaries()) {
+                String key = objectSummary.getKey();
+                if (key.endsWith("/" + name + "/details.json")) {
+                    objectKeys.add(key);
+                }
+            }
+
+            request.setContinuationToken(result.getNextContinuationToken());
+        } while (result.isTruncated());
+
+        return objectKeys;
+    }
+}
