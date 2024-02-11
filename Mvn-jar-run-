@@ -1,0 +1,3 @@
+run jar with external properties 
+
+java -jar -Dspring.config.location=/path/to/external/application.properties your-application.jar
