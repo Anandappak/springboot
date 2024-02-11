@@ -1,0 +1,37 @@
+unique object set 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        List<MyObject> objects = new ArrayList<>();
+        // Populate your objects list here
+        
+        List<MyObject> uniqueObjects = removeDuplicates(objects);
+        
+        // Now uniqueObjects contains only unique objects based on their ID
+    }
+    
+    public static List<MyObject> removeDuplicates(List<MyObject> objects) {
+        Set<Integer> seenIds = new HashSet<>();
+        List<MyObject> uniqueObjects = new ArrayList<>();
+        
+        for (MyObject obj : objects) {
+            if (seenIds.add(obj.getId())) {
+                uniqueObjects.add(obj);
+            }
+        }
+        
+        return uniqueObjects;
+    }
+}
+
+class MyObject {
+    private int id;
+    private String name;
+    private String address;
+    
+    // Constructor, getters, and setters
+}
