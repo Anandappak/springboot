@@ -1,4 +1,5 @@
 unique object set 
+ex: 1
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -34,4 +35,56 @@ class MyObject {
     private String address;
     
     // Constructor, getters, and setters
+}
+Ex :2
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List<MyObject> list = new ArrayList<>();
+        list.add(new MyObject(1, "John", "123 Main St"));
+        list.add(new MyObject(2, "Jane", "456 Elm St"));
+        list.add(new MyObject(1, "Doe", "789 Oak St")); // Duplicate ID
+
+        Map<Integer, MyObject> map = new HashMap<>();
+        for (MyObject obj : list) {
+            map.put(obj.getId(), obj);
+        }
+
+        Collection<MyObject> uniqueObjects = map.values();
+
+        // Print unique objects
+        for (MyObject obj : uniqueObjects) {
+            System.out.println(obj);
+        }
+    }
+}
+
+class MyObject {
+    private int id;
+    private String name;
+    private String address;
+
+    public MyObject(int id, String name, String address) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    @Override
+    public String toString() {
+        return "ID: " + id + ", Name: " + name + ", Address: " + address;
+    }
 }
