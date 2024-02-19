@@ -13,3 +13,39 @@ public class LocalDateToTimestamp {
         System.out.println("Timestamp: " + timestamp);
     }
 }
+
+
+date filter
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DateFilter {
+    public static void main(String[] args) {
+        // Sample list of dates
+        List<LocalDate> dateList = new ArrayList<>();
+        dateList.add(LocalDate.of(2024, 2, 1));
+        dateList.add(LocalDate.of(2024, 2, 10));
+        dateList.add(LocalDate.of(2024, 2, 15));
+        dateList.add(LocalDate.of(2024, 2, 20));
+        dateList.add(LocalDate.of(2024, 2, 25));
+        
+        // Define start and end dates for filtering
+        LocalDate startDate = LocalDate.of(2024, 2, 5);
+        LocalDate endDate = LocalDate.of(2024, 2, 20);
+        
+        // Filter dates between start and end dates
+        List<LocalDate> filteredDates = new ArrayList<>();
+        for (LocalDate date : dateList) {
+            if (date.isAfter(startDate) && date.isBefore(endDate)) {
+                filteredDates.add(date);
+            }
+        }
+        
+        // Output filtered dates
+        System.out.println("Filtered dates between " + startDate + " and " + endDate + ":");
+        for (LocalDate date : filteredDates) {
+            System.out.println(date);
+        }
+    }
+}
