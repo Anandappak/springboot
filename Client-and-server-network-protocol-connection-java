@@ -1,0 +1,100 @@
+client side code
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.*;
+
+public class SSLClient {
+    public static void main(String[] args) throws Exception {
+        String serverAddress = "localhost";
+        int port = 12345;
+        
+        // Load client keystore
+        char[] password = "password".toCharArray();
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream("client.keystore"), password);
+        
+        // Initialize key manager factory
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, password);
+        
+        // Create SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+        
+        // Create SSLSocket
+        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(serverAddress, port);
+        
+        // Communicate with server
+        PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        
+        // Send message to server
+        writer.println("Hello, server!");
+        
+        // Receive response from server
+        String response = reader.readLine();
+        System.out.println("Received from server: " + response);
+        
+        // Close connection
+        socket.close();
+    }
+}
+
+
+
+server side 
+import javax.net.ssl.*;
+import java.io.*;
+import java.security.*;
+
+public class SSLServer {
+    public static void main(String[] args) throws Exception {
+        int port = 12345;
+        
+        // Load server keystore
+        char[] password = "password".toCharArray();
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(new FileInputStream("server.keystore"), password);
+        
+        // Initialize key manager factory
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, password);
+        
+        // Create SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+        
+        // Create SSLServerSocket
+        SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
+        SSLServerSocket serverSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(port);
+        
+        System.out.println("Server started. Listening on port " + port);
+        
+        // Listen for client connections
+        while (true) {
+            SSLSocket clientSocket = (SSLSocket) serverSocket.accept();
+            System.out.println("Client connected: " + clientSocket.getInetAddress());
+            
+            // Handle client connection in a separate thread
+            new Thread(() -> {
+                try {
+                    // Handle client communication
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+                    
+                    String message = reader.readLine();
+                    System.out.println("Received from client: " + message);
+                    
+                    // Send response to client
+                    writer.println("Server received: " + message);
+                    
+                    // Close connection
+                    clientSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+}
