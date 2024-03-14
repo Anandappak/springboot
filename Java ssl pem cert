@@ -40,3 +40,49 @@ public class SSLClient {
     }
 }
 
+
+2)technic
+import okhttp3.*;
+
+import javax.net.ssl.*;
+import java.io.FileInputStream;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+
+public class OkHttpWithClientCert {
+    public static void main(String[] args) throws Exception {
+        // Load client certificate
+        FileInputStream fis = new FileInputStream("client.pem");
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        X509Certificate cert = (X509Certificate) cf.generateCertificate(fis);
+
+        // Create TrustManager that trusts the client certificate
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null); // Initialize empty keystore
+        trustStore.setCertificateEntry("client", cert);
+        tmf.init(trustStore);
+
+        // Create SSLContext and initialize it with the TrustManager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmf.getTrustManagers(), null);
+
+        // Create OkHttpClient with custom SSLContext
+        OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) tmf.getTrustManagers()[0])
+                .build();
+
+        // Example request
+        Request request = new Request.Builder()
+                .url("https://example.com")
+                .build();
+
+        // Execute the request
+        try (Response response = client.newCall(request).execute()) {
+            System.out.println(response.body().string());
+        }
+    }
+}
+
