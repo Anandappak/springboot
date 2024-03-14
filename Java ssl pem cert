@@ -1,1 +1,42 @@
 java ssl .pem
+
+import javax.net.ssl.*;
+import java.io.FileInputStream;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+
+public class SSLClient {
+    public static void main(String[] args) throws Exception {
+        // Load client certificate
+        FileInputStream fis = new FileInputStream("client.pem");
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        X509Certificate cert = (X509Certificate) cf.generateCertificate(fis);
+        
+        // Load client private key
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null); // Initialize empty keystore
+        keyStore.setCertificateEntry("client", cert);
+        
+        // Create KeyManagerFactory
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, null);
+        KeyManager[] keyManagers = kmf.getKeyManagers();
+        
+        // Create SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagers, null, null);
+        
+        // Use SSLContext for your HTTPS connections
+        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+        
+        // Now you can make HTTPS requests using HttpsURLConnection or HttpClient
+        // For example:
+        // URL url = new URL("https://example.com");
+        // HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        // connection.setRequestMethod("GET");
+        // InputStream in = connection.getInputStream();
+        // ...
+    }
+}
+
