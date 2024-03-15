@@ -208,4 +208,61 @@ public class SSLExample {
         }
     }
 }
+new updated code
+import okhttp3.OkHttpClient;
+import okhttp3.CertificatePinner;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+
+public class MyHttpClient {
+
+    public OkHttpClient getHttpClient() {
+        try {
+            // Load certificate from file
+            InputStream certInputStream = new BufferedInputStream(new FileInputStream("cert.pem"));
+            CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) certFactory.generateCertificate(certInputStream);
+            
+            // Load chaining certificate from file
+            InputStream chainingInputStream = new BufferedInputStream(new FileInputStream("chaining.pem"));
+            X509Certificate chainingCert = (X509Certificate) certFactory.generateCertificate(chainingInputStream);
+            
+            // Load private key from file (if needed)
+            // KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            // InputStream keyInputStream = new BufferedInputStream(new FileInputStream("key.pem"));
+            // keyStore.load(keyInputStream, "password".toCharArray());
+
+            // Create a TrustManager that trusts the certificates
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(null, null);
+            trustStore.setCertificateEntry("cert", cert);
+            trustStore.setCertificateEntry("chaining", chainingCert);
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(trustStore);
+
+            // Create an SSLContext that uses our TrustManager
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+
+            // Configure OkHttpClient to use the SSLContext
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.sslSocketFactory(sslContext.getSocketFactory(), trustManagerFactory);
+            builder.hostnameVerifier((hostname, session) -> true); // Replace with proper hostname verification
+
+            // You can also add certificate pinning if needed
+            // builder.certificatePinner(new CertificatePinner.Builder().add("example.com", "sha256/encoded_hash").build());
+
+            return builder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
 
