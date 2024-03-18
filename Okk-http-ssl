@@ -396,3 +396,60 @@ public class OkHttpClientExample {
     }
 }
 
+
+new code 3
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.FileInputStream;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+
+public class OkHttpClientExample {
+    public static void main(String[] args) throws Exception {
+        // Load chain-of-trust.pem file
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        FileInputStream chainInput = new FileInputStream("path/to/chain-of-trust.pem");
+        X509Certificate caCert = (X509Certificate) certificateFactory.generateCertificate(chainInput);
+        
+        // Load server certificate
+        FileInputStream certInput = new FileInputStream("path/to/server.crt");
+        X509Certificate serverCert = (X509Certificate) certificateFactory.generateCertificate(certInput);
+
+        // Load server private key
+        FileInputStream keyInput = new FileInputStream("path/to/server.key");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("caCert", caCert);
+        keyStore.setCertificateEntry("serverCert", serverCert);
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, "password".toCharArray());
+
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, tmf.getTrustManagers()[0])
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://example.com")
+                .build();
+
+        Response response = client.newCall(request).execute();
+        System.out.println(response.body().string());
+    }
+}
+
