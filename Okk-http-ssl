@@ -266,3 +266,80 @@ public class MyHttpClient {
     }
 }
 
+new ex ssl adedd
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.CertificatePinner;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLSocketFactory;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class OkHttpExample {
+    public static void main(String[] args) {
+        try {
+            OkHttpClient client = getOkHttpClient();
+            
+            Request request = new Request.Builder()
+                .url("https://your-server.com")
+                .build();
+                
+            Response response = client.newCall(request).execute();
+            System.out.println(response.body().string());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static OkHttpClient getOkHttpClient() throws IOException {
+        // Load CA certificate
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        InputStream caInput = new FileInputStream("ca.crt");
+        X509Certificate caCert = (X509Certificate) cf.generateCertificate(caInput);
+        caInput.close();
+
+        // Load server certificate
+        InputStream certInput = new FileInputStream("server.crt");
+        X509Certificate serverCert = (X509Certificate) cf.generateCertificate(certInput);
+        certInput.close();
+
+        // Load server key
+        InputStream keyInput = new FileInputStream("server.key");
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        keyStore.load(keyInput, "password".toCharArray());
+        keyInput.close();
+
+        // TrustManagerFactory for CA certificate
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init((KeyStore) null);
+        tmf.getTrustManagers();
+
+        // KeyManagerFactory for server key
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, "password".toCharArray());
+
+        // Create SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+
+        // Configure OkHttp client
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        builder.sslSocketFactory(sslContext.getSocketFactory());
+        builder.hostnameVerifier((hostname, session) -> true); // You might want to change this to a proper hostname verifier
+        return builder.build();
+    }
+}
+
