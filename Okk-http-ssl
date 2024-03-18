@@ -481,3 +481,21 @@ public class SSLConfig {
         return sslContext.getSocketFactory();
     }
 }
+import okhttp3.OkHttpClient;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            OkHttpClient client = new OkHttpClient.Builder()
+                .sslSocketFactory(SSLConfig.getSSLSocketFactory())
+                .hostnameVerifier((hostname, session) -> true)
+                .build();
+                
+            // Proceed with your OkHttpClient setup and request here
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
