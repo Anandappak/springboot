@@ -1,0 +1,40 @@
+ssl config
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.FileInputStream;
+import java.security.KeyStore;
+
+@Configuration
+public class RestClientConfiguration {
+
+    @Bean
+    public RestTemplate restTemplate() throws Exception {
+        return new RestTemplate(clientHttpRequestFactory());
+    }
+
+    private ClientHttpRequestFactory clientHttpRequestFactory() throws Exception {
+        return new HttpComponentsClientHttpRequestFactory(httpClient());
+    }
+
+    private CloseableHttpClient httpClient() throws Exception {
+        // Load the truststore containing the CA certificate
+        KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
+        truststore.load(new FileInputStream("path/to/chain-of-truststore.pem"), "truststorePassword".toCharArray());
+
+        // Load the client certificate and private key
+        SSLContext sslContext = SSLContexts.custom()
+                .loadKeyMaterial(new FileInputStream("path/to/server.key"), "keyPassword".toCharArray(), "keyPassword".toCharArray())
+                .loadTrustMaterial(truststore, null)
+                .build();
+
+        // Create and return HttpClient with SSL context
+        return HttpClients.custom()
+                .setSSLContext(sslContext)
+                .build();
+    }
+}
