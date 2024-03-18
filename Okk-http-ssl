@@ -619,3 +619,93 @@ public class CustomHttpClient {
         // HttpResponse response = httpClient.execute(httpGet);
     }
 }
+convert to jks formate and try and try 
+import okhttp3.*;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+public class OkHttpWithSSL {
+    public static void main(String[] args) {
+        OkHttpClient okHttpClient = createCustomOkHttpClient();
+
+        // Replace with your API endpoint
+        String url = "https://your_api_endpoint";
+
+        // Replace with your file path
+        File file = new File("path/to/your/file");
+
+        // Create request body
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.getName(),
+                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .build();
+
+        // Create POST request
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build();
+
+        try {
+            // Execute the request
+            Response response = okHttpClient.newCall(request).execute();
+
+            // Handle the response
+            if (response.isSuccessful()) {
+                System.out.println("Request successful!");
+                System.out.println("Response: " + response.body().string());
+            } else {
+                System.out.println("Request failed!");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static OkHttpClient createCustomOkHttpClient() {
+        try {
+            // Load your SSL certificates
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (FileInputStream in = new FileInputStream("path/to/your/truststore.jks")) {
+                keyStore.load(in, "your_truststore_password".toCharArray());
+            }
+
+            // Create a TrustManager that trusts all certificates
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        }
+
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+                    }
+            };
+
+            // Create SSLContext with the custom TrustManager and your KeyStore
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+
+            // Create OkHttpClient with custom SSLContext
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0]);
+
+            return builder.build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
