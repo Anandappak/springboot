@@ -38,3 +38,88 @@ public class RestClientConfiguration {
                 .build();
     }
 }
+
+new code test
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.KeyManagerFactory;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import org.apache.http.ssl.SSLContextBuilder;
+
+public class MyRestClient {
+
+    public static void main(String[] args) throws Exception {
+        MyRestClient myRestClient = new MyRestClient();
+        myRestClient.makePostRequest();
+    }
+
+    public void makePostRequest() throws Exception {
+        RestTemplate restTemplate = getRestTemplate();
+
+        // Replace "https://example.com/api" with your actual API endpoint
+        String url = "https://example.com/api";
+
+        // Replace "file_path_to_upload" with the path to the file you want to upload
+        String filePath = "file_path_to_upload";
+
+        // Read file content
+        byte[] fileContent = readFromFile(filePath);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(fileContent, headers);
+
+        restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+    }
+
+    private byte[] readFromFile(String filePath) throws Exception {
+        InputStream inputStream = new FileInputStream(filePath);
+        byte[] fileBytes = inputStream.readAllBytes();
+        inputStream.close();
+        return fileBytes;
+    }
+
+    public RestTemplate getRestTemplate() throws Exception {
+        SSLContext sslContext = SSLContextBuilder.create()
+            .loadKeyMaterial(loadKeyStore("server.key", "password"), "password".toCharArray())
+            .loadTrustMaterial(loadTrustStore("chain-of-cert.pem"), null)
+            .build();
+
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setHttpClient(HttpClients.custom().setSSLContext(sslContext).build());
+
+        return new RestTemplate(requestFactory);
+    }
+
+    private KeyStore loadKeyStore(String keyStorePath, String password) throws Exception {
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        InputStream inputStream = new FileInputStream(keyStorePath);
+        keyStore.load(inputStream, password.toCharArray());
+        return keyStore;
+    }
+
+    private KeyStore loadTrustStore(String trustStorePath) throws Exception {
+        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null); // Initialize empty truststore
+        try (InputStream inputStream = new FileInputStream(trustStorePath)) {
+            Certificate certificate = certFactory.generateCertificate(inputStream);
+            trustStore.setCertificateEntry("cert", certificate);
+        }
+        return trustStore;
+    }
+}
+
