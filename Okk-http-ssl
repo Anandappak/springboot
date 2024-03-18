@@ -564,3 +564,58 @@ public class Main {
         return (X509Certificate) certificateFactory.generateCertificate(file.toURI().toURL().openStream());
     }
 }
+
+custome ssl certificate 
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+
+public class CustomHttpClient {
+
+    public static HttpClient createCustomHttpClient() throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        // Create a trust manager that trusts all certificates
+        TrustManager[] trustAllCertificates = new TrustManager[] {
+            new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            }
+        };
+
+        // Create SSLContext with the trust manager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustAllCertificates, null);
+
+        // Build a custom HttpClient with the custom SSLContext
+        return HttpClients.custom()
+                .setSSLContext(sslContext)
+                .build();
+    }
+
+    public static void main(String[] args) throws NoSuchAlgorithmException, KeyManagementException, KeyStoreException {
+        HttpClient httpClient = createCustomHttpClient();
+        // Use the custom HttpClient for making requests
+        // Example:
+        // HttpGet httpGet = new HttpGet("https://example.com");
+        // HttpResponse response = httpClient.execute(httpGet);
+    }
+}
