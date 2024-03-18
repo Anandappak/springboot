@@ -452,4 +452,32 @@ public class OkHttpClientExample {
         System.out.println(response.body().string());
     }
 }
+no ssl certificate error
 
+import javax.net.ssl.*;
+
+public class SSLConfig {
+    public static SSLSocketFactory getSSLSocketFactory() throws Exception {
+        // Create a TrustManager that trusts the server's certificate
+        TrustManager[] trustAllCerts = new TrustManager[]{
+            new X509TrustManager() {
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return new java.security.cert.X509Certificate[]{};
+                }
+                public void checkClientTrusted(
+                    java.security.cert.X509Certificate[] certs, String authType) {
+                }
+                public void checkServerTrusted(
+                    java.security.cert.X509Certificate[] certs, String authType) {
+                }
+            }
+        };
+        
+        // Create an SSLContext that uses our TrustManager
+        SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        
+        // Get the SSLSocketFactory from the SSLContext
+        return sslContext.getSocketFactory();
+    }
+}
