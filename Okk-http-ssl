@@ -499,3 +499,68 @@ public class Main {
 }
 
 
+new cose error ssl
+import okhttp3.*;
+
+import javax.net.ssl.*;
+import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+
+public class Main {
+    public static void main(String[] args) throws IOException, GeneralSecurityException {
+        // Load client certificate and key
+        File certFile = new File("chain-of-trud.pem"); // Replace with your client certificate file
+        File keyFile = new File("server.key"); // Replace with your client private key file
+
+        // Load CA certificate
+        File caFile = new File("server.crt"); // Replace with your CA certificate file
+
+        OkHttpClient client = createClient(certFile, keyFile, caFile);
+
+        // Proceed with your OkHttpClient setup and request here
+    }
+
+    private static OkHttpClient createClient(File certFile, File keyFile, File caFile)
+            throws IOException, GeneralSecurityException {
+        // Load client certificate and key into KeyStore
+        KeyStore clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        clientKeyStore.load(null, null); // Initialize an empty KeyStore
+        X509Certificate clientCert = loadCertificate(certFile);
+        clientKeyStore.setCertificateEntry("client", clientCert);
+
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null, null); // Initialize an empty KeyStore
+        X509Certificate caCert = loadCertificate(caFile);
+        trustStore.setCertificateEntry("ca", caCert);
+
+        // Initialize KeyManagerFactory with client certificate
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(
+                KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(clientKeyStore, null);
+
+        // Initialize TrustManagerFactory with CA certificate
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
+                TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
+
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(),
+                trustManagerFactory.getTrustManagers(), null);
+
+        // Build OkHttpClient with SSLContext
+        return new OkHttpClient.Builder()
+                .sslSocketFactory(sslContext.getSocketFactory(),
+                        (X509TrustManager) trustManagerFactory.getTrustManagers()[0])
+                .build();
+    }
+
+    private static X509Certificate loadCertificate(File file) throws IOException, GeneralSecurityException {
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        return (X509Certificate) certificateFactory.generateCertificate(file.toURI().toURL().openStream());
+    }
+}
