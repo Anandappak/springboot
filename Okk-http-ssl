@@ -709,3 +709,76 @@ public class OkHttpWithSSL {
         }
     }
 }
+
+only passed server.key and server.crt
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import javax.net.ssl.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+
+public class OkHttpWithSSL {
+
+    public static OkHttpClient createCustomOkHttpClient() throws Exception {
+        // Load SSL certificate (server.crt)
+        File certificateFile = new File("path/to/your/server.crt");
+        FileInputStream certificateInputStream = new FileInputStream(certificateFile);
+        X509Certificate certificate;
+        try {
+            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+            certificate = (X509Certificate) certificateFactory.generateCertificate(certificateInputStream);
+        } finally {
+            certificateInputStream.close();
+        }
+
+        // Load server key (server.key)
+        File keyFile = new File("path/to/your/server.key");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        // You can add the key to the KeyStore if required
+        // For example:
+        // keyStore.setCertificateEntry("server-certificate", certificate);
+
+        // Create KeyManagerFactory with the KeyStore
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, null);
+
+        // Create TrustManagerFactory with the loaded certificate
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+
+        // Create SSLContext with the KeyManagerFactory and TrustManagerFactory
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+        // Get SSLSocketFactory from SSLContext
+        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        // Build custom OkHttpClient with the SSLSocketFactory
+        return new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustManagerFactory.getTrustManagers()[0])
+                .build();
+    }
+
+    public static void main(String[] args) throws Exception {
+        OkHttpClient okHttpClient = createCustomOkHttpClient();
+
+        // Create request
+        Request request = new Request.Builder()
+                .url("https://your_api_endpoint")
+                .build();
+
+        // Execute request
+        try (Response response = okHttpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            // Handle response
+            System.out.println(response.body().string());
+        }
+    }
+}
+
