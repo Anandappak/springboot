@@ -30,3 +30,41 @@ axios.post(apiUrl, postData, axiosConfig)
         console.error('Error:', error.response.data);
         // Handle errors
     });
+ex
+const axios = require('axios');
+const fs = require('fs');
+
+// Load SSL certificate, CA, and key
+const sslCert = fs.readFileSync('path_to_ssl_certificate');
+const sslKey = fs.readFileSync('path_to_ssl_private_key');
+const caCert = fs.readFileSync('path_to_ca_certificate');
+
+// Axios request configuration
+const axiosConfig = {
+  httpsAgent: {
+    cert: sslCert,
+    key: sslKey,
+    ca: caCert
+  }
+};
+
+// Function to make POST request
+async function postDataWithSSL(url, postData) {
+  try {
+    const response = await axios.post(url, postData, axiosConfig);
+    console.log('Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.message);
+    throw error;
+  }
+}
+
+// Example usage
+const apiUrl = 'https://api.example.com/post';
+const postData = {
+  key1: 'value1',
+  key2: 'value2'
+};
+
+postDataWithSSL(apiUrl, postData);
