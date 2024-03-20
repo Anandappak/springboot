@@ -68,3 +68,54 @@ const postData = {
 };
 
 postDataWithSSL(apiUrl, postData);
+
+ppst the files
+const axios = require('axios');
+const https = require('https');
+const FormData = require('form-data');
+const fs = require('fs');
+
+// Load SSL certificate, key, and CA certificate
+const sslCert = fs.readFileSync('path_to_ssl_certificate');
+const sslKey = fs.readFileSync('path_to_ssl_private_key');
+const caCert = fs.readFileSync('path_to_ca_certificate');
+
+// Load token
+const token = 'your_token';
+
+// Axios request configuration
+const axiosConfig = {
+  httpsAgent: new https.Agent({
+    cert: sslCert,
+    key: sslKey,
+    ca: caCert
+  }),
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'multipart/form-data'
+  }
+};
+
+// Function to make POST request with form data
+async function postDataWithSSL(url, file1Path, file2Path) {
+  try {
+    const formData = new FormData();
+    formData.append('file1', fs.createReadStream(file1Path));
+    formData.append('file2', fs.createReadStream(file2Path));
+
+    const response = await axios.post(url, formData, axiosConfig);
+    console.log('Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.message);
+    throw error;
+  }
+}
+
+// Example usage
+const apiUrl = 'https://api.example.com/post';
+const file1Path = 'path_to_file1';
+const file2Path = 'path_to_file2';
+
+postDataWithSSL(apiUrl, file1Path, file2Path);
+
