@@ -15,3 +15,74 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .requiresSecure();
     }
 }
+
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+@Configuration
+public class RestClientConfig {
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate(clientHttpRequestFactory());
+    }
+
+    private ClientHttpRequestFactory clientHttpRequestFactory() {
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+        // Configure factory settings (e.g., timeout)
+        // factory.setReadTimeout(5000);
+        // factory.setConnectTimeout(5000);
+        return factory;
+    }
+}
+
+
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+
+// In RestClientConfig class
+private CloseableHttpClient httpClient() {
+    SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext());
+    return HttpClients.custom()
+            .setSSLSocketFactory(socketFactory)
+            .build();
+}
+
+private SSLContext sslContext() {
+    try {
+        return SSLContextBuilder.create()
+                .loadTrustMaterial(new TrustSelfSignedStrategy())
+                .build();
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to create SSL context", e);
+    }
+}
+
+@Bean
+public RestTemplate restTemplate() {
+    return new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient()));
+}
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class MyService {
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    public void makeHttpRequest() {
+        String url = "https://example.com/api/resource";
+        // Make HTTP request using restTemplate.getForObject() or restTemplate.postForObject()
+        // restTemplate.getForObject(url, MyResponse.class);
+        // restTemplate.postForObject(url, request, MyResponse.class);
+    }
+}
