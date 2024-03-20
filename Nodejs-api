@@ -1,0 +1,32 @@
+post api
+const axios = require('axios');
+
+// Define the API endpoint and token
+const apiUrl = 'https://api.example.com/post';
+const token = 'your_token_here';
+
+// Data to be sent in the request body
+const postData = {
+    key1: 'value1',
+    key2: 'value2'
+};
+
+// Axios POST request configuration
+const axiosConfig = {
+    headers: {
+        'Authorization': `Bearer ${token}`, // Include the token in the Authorization header
+        'Content-Type': 'application/json' // Set the content type
+        // Add any other headers if needed
+    }
+};
+
+// Make the POST request using Axios
+axios.post(apiUrl, postData, axiosConfig)
+    .then(response => {
+        console.log('Response:', response.data);
+        // Handle the response data
+    })
+    .catch(error => {
+        console.error('Error:', error.response.data);
+        // Handle errors
+    });
