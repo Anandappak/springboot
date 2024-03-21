@@ -1,3 +1,43 @@
+start 
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
+public class SSLConfigurationExample {
+
+    public static void main(String[] args) throws Exception {
+        // Load keystore
+        KeyStore keystore = KeyStore.getInstance("JKS");
+        char[] password = "your_keystore_password".toCharArray();
+        InputStream keystoreInputStream = new FileInputStream("keystore.jks");
+        keystore.load(keystoreInputStream, password);
+        
+        // Initialize key manager factory
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keystore, password);
+        
+        // Initialize trust manager factory
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keystore);
+        
+        // Initialize SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+        
+        // Now you can use this SSL context in your HTTP client/server
+        // For example:
+        // HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+    }
+}
+end
+
+
+
+
 ssl config
 
 import org.springframework.context.annotation.Bean;
