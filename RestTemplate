@@ -50,7 +50,7 @@ import java.util.Arrays;
 
 public class FileUploadClient {
 
-    public void uploadFiles(String apiUrl, Path file1Path, Path file2Path) throws IOException {
+    public void uploadFiles(String apiUrl, Path file1Path, Path file2Path,token) throws IOException {
         // Create RestTemplate instance
         RestTemplate restTemplate = new RestTemplate();
 
@@ -77,7 +77,7 @@ public class FileUploadClient {
         // Set up headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
+        headers.setBearerAuth(token)
         // Create the request entity
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
