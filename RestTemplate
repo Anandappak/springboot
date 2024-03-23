@@ -31,3 +31,67 @@ public class MyApiClient {
         }
     }
 }
+
+post api file
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+
+public class FileUploadClient {
+
+    public void uploadFiles(String apiUrl, Path file1Path, Path file2Path) throws IOException {
+        // Create RestTemplate instance
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Prepare files as resources
+        ByteArrayResource file1Resource = new ByteArrayResource(Files.readAllBytes(file1Path)) {
+            @Override
+            public String getFilename() {
+                return file1Path.getFileName().toString();
+            }
+        };
+
+        ByteArrayResource file2Resource = new ByteArrayResource(Files.readAllBytes(file2Path)) {
+            @Override
+            public String getFilename() {
+                return file2Path.getFileName().toString();
+            }
+        };
+
+        // Populate the form data
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file1", file1Resource);
+        body.add("file2", file2Resource);
+
+        // Set up headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        // Create the request entity
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        // Send the POST request
+        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
+
+        // Handle the response
+        if (response.getStatusCode().is2xxSuccessful()) {
+            String responseBody = response.getBody();
+            // Process the response body
+            System.out.println("Response from API: " + responseBody);
+        } else {
+            // Handle error response
+            System.err.println("Error response from API: " + response.getStatusCode());
+        }
+    }
+}
