@@ -1,0 +1,33 @@
+Rest template post api
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+public class MyApiClient {
+
+    public void callApi(String apiUrl, String username, String password) {
+        // Create a RestTemplate instance
+        RestTemplate restTemplate = new RestTemplate();
+        
+        // Set up the request body
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String requestBody = "{\"username\":\"" + username + "\", \"password\":\"" + password + "\"}";
+        HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+        // Make the POST request
+        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
+
+        // Handle the response
+        if (response.getStatusCode().is2xxSuccessful()) {
+            String responseBody = response.getBody();
+            // Process the response body
+            System.out.println("Response from API: " + responseBody);
+        } else {
+            // Handle error response
+            System.err.println("Error response from API: " + response.getStatusCode());
+        }
+    }
+}
