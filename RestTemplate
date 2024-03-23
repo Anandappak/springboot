@@ -95,3 +95,51 @@ public class FileUploadClient {
         }
     }
 }
+costome ssl certificate enable
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+import javax.net.ssl.*;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+public class CustomRestTemplate {
+
+    public RestTemplate createRestTemplate() throws Exception {
+        // Load server key store
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        InputStream keyStoreInputStream = new FileInputStream("server.key");
+        keyStore.load(keyStoreInputStream, "keystore_password".toCharArray());
+
+        // Load CA certificate
+        KeyStore caKeyStore = KeyStore.getInstance("JKS");
+        InputStream caInputStream = new FileInputStream("ca_certificate.crt");
+        caKeyStore.load(caInputStream, "ca_keystore_password".toCharArray());
+
+        // Set up SSL context with server key and CA certificate
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, "keystore_password".toCharArray());
+        trustManagerFactory.init(caKeyStore);
+
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+        // Configure RestTemplate to use SSL context
+        SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setSSLSocketFactory(socketFactory)
+                .build();
+
+        ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        return new RestTemplateBuilder()
+                .requestFactory(() -> requestFactory)
+                .build();
+    }
+}
