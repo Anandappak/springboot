@@ -143,3 +143,53 @@ public class CustomRestTemplate {
                 .build();
     }
 }
+2)Custome ssl config restTemplate
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+
+public class MyRestTemplateFactory {
+
+    public RestTemplate createRestTemplate() throws Exception {
+        // Load CA certificate
+        InputStream caInput = new FileInputStream("path_to_ca_certificate");
+        KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        caKeyStore.load(caInput, "ca_password".toCharArray());
+
+        // Load server key
+        InputStream keyInput = new FileInputStream("path_to_server_key");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(keyInput, "key_password".toCharArray());
+
+        // Load server certificate
+        InputStream certInput = new FileInputStream("path_to_server_certificate");
+        KeyStore certKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        certKeyStore.load(certInput, "cert_password".toCharArray());
+
+        // Initialize trust manager factory with CA certificate
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(caKeyStore);
+
+        // Initialize key manager factory with server key and certificate
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, "key_password".toCharArray());
+
+        // Initialize SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+
+        // Configure HttpClient with SSL context
+        ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(HttpClients.custom().setSSLContext(sslContext).build());
+
+        // Create RestTemplate with configured request factory
+        return new RestTemplate(requestFactory);
+    }
+}
