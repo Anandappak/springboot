@@ -1,0 +1,37 @@
+ex1
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class PythonScriptRunner {
+
+    public static void main(String[] args) {
+        try {
+            // Command to run Python script with arguments
+            ProcessBuilder pb = new ProcessBuilder("python", "your_script.py", "arg1", "arg2");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // Read output from Python script
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // Wait for the process to finish
+            int exitCode = process.waitFor();
+
+            // Print output and exit code
+            System.out.println("Output: " + output.toString());
+            System.out.println("Exit code: " + exitCode);
+
+            // You can store the output in a variable if needed
+            String scriptOutput = output.toString();
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
