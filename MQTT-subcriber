@@ -1,3 +1,4 @@
+EXAMPLE :-
 step 1 : Config class
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -104,6 +105,115 @@ public class MqttController {
 }
 
 step 5 :application properties 
+mqtt:
+  broker: ssl://your-mqtt-broker-url:8883
+  clientId: mqtt_subscriber
+  username: your_username
+  password: your_password
+  ssl:
+    enabled: true
+    caFilePath: /path/to/ca.crt
+    certFilePath: /path/to/client.crt
+    keyFilePath: /path/to/client.key
+    keyPassword: your_key_password
+===================================================
+EX 2 :-
+==============================================
+Step 1 : Config ssl
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+
+@Configuration
+public class MqttConfig {
+
+    @Value("${mqtt.broker}")
+    private String broker;
+
+    @Value("${mqtt.clientId}")
+    private String clientId;
+
+    @Value("${mqtt.username}")
+    private String username;
+
+    @Value("${mqtt.password}")
+    private String password;
+
+    @Value("${mqtt.ssl.enabled}")
+    private boolean sslEnabled;
+
+    @Value("${mqtt.ssl.caFilePath}")
+    private String caFilePath;
+
+    @Value("${mqtt.ssl.certFilePath}")
+    private String certFilePath;
+
+    @Value("${mqtt.ssl.keyFilePath}")
+    private String keyFilePath;
+
+    @Value("${mqtt.ssl.keyPassword}")
+    private String keyPassword;
+
+    @Bean
+    public MqttPahoClientFactory mqttClientFactory() {
+        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setCleanSession(true);
+        options.setUserName(username);
+        options.setPassword(password.toCharArray());
+        if (sslEnabled) {
+            try {
+                options.setSocketFactory(SslUtil.getSocketFactory(caFilePath, certFilePath, keyFilePath, keyPassword));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        factory.setConnectionOptions(options);
+        return factory;
+    }
+}
+Step 2 :- establish the WebSocket connection to send messages to the web client:
+
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.stereotype.Controller;
+
+@Controller
+public class WebSocketController {
+
+    @MessageMapping("/mqtt-messages")
+    @SendTo("/topic/messages")
+    public String sendMqttMessage(String message) {
+        return message;
+    }
+}
+step 3 : implement the message listener to consume MQTT messages and send them over WebSocket:
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.annotation.MessagingGateway;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+public class MqttMessageReceiver {
+
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
+
+    @ServiceActivator(inputChannel = "mqttInputChannel")
+    public void messageReceiver(Message<String> message) {
+        String payload = message.getPayload();
+        simpMessagingTemplate.convertAndSend("/topic/messages", payload);
+    }
+}
+
+Step 5 : configure the MQTT connection details and SSL settings in your application.properties or application.yml file:
 mqtt:
   broker: ssl://your-mqtt-broker-url:8883
   clientId: mqtt_subscriber
