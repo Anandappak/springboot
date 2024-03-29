@@ -1,0 +1,362 @@
+MqTT producer post api:-
+step 1 : appllication properties
+spring:
+  mqtt:
+    host: tcp://localhost:1883
+    client-id: mqtt_publisher
+
+===========
+SSL :==
+==============
+spring:
+  mqtt:
+    host: ssl://your-mqtt-broker-url:8883
+    client-id: mqtt_publisher
+    username: your_username
+    password: your_password
+    ssl:
+      enabled: true
+      key-store: classpath:mqtt-client.keystore
+      key-store-password: your_keystore_password
+      trust-store: classpath:mqtt-client.truststore
+      trust-store-password: your_truststore_password
+
+
+step 2 : mvn package :-
+ <!-- Spring Integration MQTT -->
+    <dependency>
+        <groupId>org.springframework.integration</groupId>
+        <artifactId>spring-integration-mqtt</artifactId>
+    </dependency>
+
+step 3 : Rest controller :-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.mqtt.support.MqttHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class MqttController {
+
+    @Autowired
+    private MessageChannel mqttOutboundChannel;
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestBody MqttMessage mqttMessage) {
+        String topic = mqttMessage.getTopic();
+        String payload = mqttMessage.getMessage();
+
+        Message<String> message = MessageBuilder
+                .withPayload(payload)
+                .setHeader(MqttHeaders.TOPIC, topic)
+                .build();
+
+        mqttOutboundChannel.send(message);
+        return "Message published successfully!";
+    }
+}
+
+
+step 4 :- Entity post api
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.mqtt.support.MqttHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class MqttController {
+
+    @Autowired
+    private MessageChannel mqttOutboundChannel;
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestBody MqttMessage mqttMessage) {
+        String topic = mqttMessage.getTopic();
+        String payload = mqttMessage.getMessage();
+
+        Message<String> message = MessageBuilder
+                .withPayload(payload)
+                .setHeader(MqttHeaders.TOPIC, topic)
+                .build();
+
+        mqttOutboundChannel.send(message);
+        return "Message published successfully!";
+    }
+}
+
+
+
+===========================
+:or :
+=======================
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.mqtt.support.MqttHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class MqttController {
+
+    @Autowired
+    private MessageChannel mqttOutboundChannel;
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestBody MqttMessage mqttMessage) {
+        String topic = mqttMessage.getTopic();
+        String payload = mqttMessage.getMessage();
+
+        Message<String> message = MessageBuilder
+                .withPayload(payload)
+                .setHeader(MqttHeaders.TOPIC, topic)
+                .build();
+
+        mqttOutboundChannel.send(message);
+        return "Message published successfully!";
+    }
+}
+
+================================================================
+2 nd Ex
+=============================================================
+Step 1 :- application properties :-
+
+mqtt.ssl.host=ssl://your-mqtt-broker-url:8883
+mqtt.ssl.username=your_username
+mqtt.ssl.password=your_password
+mqtt.ssl.ca-certificate=classpath:ca_certificate.pem
+mqtt.ssl.client-certificate=classpath:client_certificate.pem
+mqtt.ssl.client-key=classpath:client_key.pem
+
+step 2 : configuration of ssl
+import javax.net.ssl.SSLSocketFactory;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConfigurationProperties(prefix = "mqtt.ssl")
+public class MqttProperties {
+
+    private String host;
+    private String username;
+    private String password;
+    private String caCertificate;
+    private String clientCertificate;
+    private String clientKey;
+
+    // getters and setters
+
+    public SSLSocketFactory getSslSocketFactory() throws Exception {
+        // Load SSL certificates and create SSLSocketFactory
+        // Implement your custom SSL configuration here
+        return YourSSLSocketFactoryBuilder.build(caCertificate, clientCertificate, clientKey);
+    }
+}
+
+step 3: controller 
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+
+@RestController
+public class MqttController {
+
+    @Autowired
+    private MqttProperties mqttProperties;
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestParam String topic, @RequestParam String message) {
+        String clientId = MqttClient.generateClientId();
+        MemoryPersistence persistence = new MemoryPersistence();
+
+        try {
+            MqttClient mqttClient = new MqttClient(mqttProperties.getHost(), clientId, persistence);
+            MqttConnectOptions connOpts = new MqttConnectOptions();
+            connOpts.setUserName(mqttProperties.getUsername());
+            connOpts.setPassword(mqttProperties.getPassword().toCharArray());
+            connOpts.setSocketFactory(mqttProperties.getSslSocketFactory());
+
+            mqttClient.connect(connOpts);
+
+            mqttClient.publish(topic, message.getBytes(), 1, false);
+            mqttClient.disconnect();
+            mqttClient.close();
+
+            return "Message published successfully!";
+        } catch (MqttException e) {
+            e.printStackTrace();
+            return "Failed to publish message: " + e.getMessage();
+        }
+    }
+}
+==================================
+SSL certificate config ca and server.key and server.crt
+MQtt Producer
+=================================
+Step 1 :- application properties
+.yml file 
+mqtt:
+  broker: ssl://your-mqtt-broker-url:8883
+  clientId: mqtt_publisher
+  username: your_username
+  password: your_password
+  ssl:
+    enabled: true
+    caFilePath: /path/to/ca.crt
+    certFilePath: /path/to/client.crt
+    keyFilePath: /path/to/client.key
+    keyPassword: your_key_password
+
+step 3 :-SSL socket cret class
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+
+public class SslUtil {
+
+    public static SSLSocketFactory getSocketFactory(String caFilePath, String certFilePath, String keyFilePath, String keyPassword) throws Exception {
+        KeyStore caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+        try (InputStream caInputStream = new FileInputStream(caFilePath);
+             InputStream certInputStream = new FileInputStream(certFilePath);
+             InputStream keyInputStream = new FileInputStream(keyFilePath)) {
+            caKeyStore.load(caInputStream, null);
+            keyStore.load(certInputStream, keyPassword.toCharArray());
+        }
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(caKeyStore);
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, keyPassword.toCharArray());
+
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+        return context.getSocketFactory();
+    }
+}
+
+step 4 :- Controller
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessagingException;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class MqttController {
+
+    @Autowired
+    private MqttPahoClientFactory mqttClientFactory;
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestParam String topic, @RequestParam String message) {
+        try {
+            Message<String> mqttMessage = MessageBuilder
+                    .withPayload(message)
+                    .setHeader("mqtt_topic", topic)
+                    .build();
+
+            MessageHandler messageHandler = new MqttPahoMessageHandler(
+                    mqttClientFactory.getClientInstance("mqtt_publisher"), mqttClientFactory.getConnection(),
+                    true);
+
+            messageHandler.handleMessage(mqttMessage);
+
+            return "Message published successfully!";
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            return "Failed to publish message: " + e.getMessage();
+        }
+    }
+}
+
+
+Step 4:-Config file :-
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
+
+@Configuration
+public class MqttConfig {
+
+    @Value("${mqtt.broker}")
+    private String broker;
+
+    @Value("${mqtt.clientId}")
+    private String clientId;
+
+    @Value("${mqtt.username}")
+    private String username;
+
+    @Value("${mqtt.password}")
+    private String password;
+
+    @Value("${mqtt.ssl.enabled}")
+    private boolean sslEnabled;
+
+    @Value("${mqtt.ssl.caFilePath}")
+    private String caFilePath;
+
+    @Value("${mqtt.ssl.certFilePath}")
+    private String certFilePath;
+
+    @Value("${mqtt.ssl.keyFilePath}")
+    private String keyFilePath;
+
+    @Value("${mqtt.ssl.keyPassword}")
+    private String keyPassword;
+
+    @Bean
+    public MqttPahoClientFactory mqttClientFactory() {
+        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setCleanSession(true);
+        options.setUserName(username);
+        options.setPassword(password.toCharArray());
+        if (sslEnabled) {
+            try {
+                options.setSocketFactory(SslUtil.getSocketFactory(caFilePath, certFilePath, keyFilePath, keyPassword));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        factory.setConnectionOptions(options);
+        return factory;
+    }
+}
+
+
+
+
+
