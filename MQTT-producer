@@ -356,7 +356,86 @@ public class MqttConfig {
     }
 }
 
+================================================
+MQTT Client Connection with ssl ca, crt, key
+===============================================
+Step 1)Create a controller class to handle the HTTP POST request for publishing messages.
 
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class MqttController {
+
+    @PostMapping("/publish")
+    public String publishMessage(@RequestBody PublishRequest request) {
+        try {
+            // Create MQTT client
+            IMqttClient client = new MqttClient("ssl://" + request.getBrokerUrl(), MqttClient.generateClientId());
+
+            // Configure SSL options
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setSocketFactory(SslUtil.getSocketFactory(request.getCaCert(), request.getClientCert(), request.getClientKey()));
+            
+            // Connect to MQTT broker
+            client.connect(options);
+
+            // Publish message
+            client.publish(request.getTopic(), new MqttMessage(request.getMessage().getBytes()));
+
+            // Disconnect from MQTT broker
+            client.disconnect();
+            
+            return "Message published successfully";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failed to publish message: " + e.getMessage();
+        }
+    }
+}
+Step 2 :Create Request Payload Class:
+
+public class PublishRequest {
+    private String brokerUrl;
+    private String topic;
+    private String message;
+    private String caCert;
+    private String clientCert;
+    private String clientKey;
+
+    // Getters and setters
+}
+
+Step 3: Util Class for SSL Configuration:
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.FileInputStream;
+import java.security.KeyStore;
+
+public class SslUtil {
+
+    public static SSLSocketFactory getSocketFactory(String caCert, String clientCert, String clientKey) throws Exception {
+        KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(new FileInputStream(caCert), "password".toCharArray());
+
+        KeyStore ts = KeyStore.getInstance("JKS");
+        ts.load(new FileInputStream(clientCert), "password".toCharArray());
+
+        KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(new FileInputStream(clientKey), "password".toCharArray());
+
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(null, null, null);
+
+        return ctx.getSocketFactory();
+    }
+}
 
 
 
