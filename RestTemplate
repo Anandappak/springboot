@@ -241,3 +241,82 @@ public class RestClientConfiguration {
                 .build();
     }
 }
+
+
+ex
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+import javax.net.ssl.*;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+
+public class RestClient {
+
+    public static void main(String[] args) throws Exception {
+        // Load server certificate
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        InputStream serverCertInputStream = new FileInputStream("server.crt");
+        X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(serverCertInputStream);
+
+        // Load trust store
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null, null);
+        trustStore.setCertificateEntry("server", serverCertificate);
+
+        // Load trust.pem
+        InputStream trustInputStream = new FileInputStream("trust.pem");
+        X509Certificate trustCertificate = (X509Certificate) certificateFactory.generateCertificate(trustInputStream);
+        trustStore.setCertificateEntry("trust", trustCertificate);
+
+        // Load server private key
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        char[] keyStorePassword = "password".toCharArray();
+        keyStore.load(null, keyStorePassword);
+        keyStore.setCertificateEntry("server", serverCertificate);
+
+        // Load server private key
+        keyStore.setKeyEntry("private-key", readPrivateKey(), keyStorePassword, new X509Certificate[]{serverCertificate});
+
+        // Create SSL context
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, keyStorePassword);
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+
+        // Create HttpClient with SSL context
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setSSLContext(sslContext)
+                .build();
+
+        // Create request factory with the HttpClient
+        HttpComponentsClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        // Create RestTemplate with the request factory
+        RestTemplate restTemplate = new RestTemplate(requestFactory);
+
+        // Make GET request
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "https://your-api-url", String.class);
+
+        // Handle response
+        System.out.println("Response: " + response.getBody());
+    }
+
+    private static PrivateKey readPrivateKey() throws Exception {
+        // Implement reading private key from server.key
+        // Example:
+        // File keyFile = new File("server.key");
+        // FileInputStream keyFileStream = new FileInputStream(keyFile);
+        // ...
+        // return privateKey;
+        return null; // Placeholder, implement actual reading
+    }
+}
