@@ -1,0 +1,39 @@
+file download 1
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class FileDownloader {
+    public static void main(String[] args) throws IOException {
+        String fileUrl = "https://example.com/largefile.zip";
+        int chunkSize = 1024 * 1024; // 1 MB chunk size
+
+        URL url = new URL(fileUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        int fileSize = connection.getContentLength();
+        int numChunks = fileSize / chunkSize;
+        if (fileSize % chunkSize != 0) {
+            numChunks++;
+        }
+
+        for (int i = 0; i < numChunks; i++) {
+            int startByte = i * chunkSize;
+            int endByte = Math.min((i + 1) * chunkSize - 1, fileSize - 1);
+
+            connection.setRequestProperty("Range", "bytes=" + startByte + "-" + endByte);
+
+            try (InputStream inputStream = connection.getInputStream();
+                 FileOutputStream outputStream = new FileOutputStream("chunk" + i + ".bin")) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+        }
+
+        connection.disconnect();
+        System.out.println("File downloaded successfully in chunks.");
+    }
+}
