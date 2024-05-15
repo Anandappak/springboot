@@ -213,3 +213,26 @@ public class FileController {
         // getters and setters
     }
 }
+
+js ajax call
+http://localhost:8080/api/file
+function downloadFile() {
+    $.ajax({
+        url: 'http://localhost:8080/api/file',
+        type: 'GET',
+        success: function(fileData) {
+            const decodedData = atob(fileData.base64Data);
+            const blob = new Blob([decodedData], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'file.txt'; // Change the filename as needed
+            link.click();
+        },
+        error: function(xhr, status, error) {
+            console.error('Error downloading file:', error);
+        }
+    });
+}
+
+// Call the function to initiate download
+downloadFile();
