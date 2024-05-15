@@ -145,7 +145,76 @@ async function downloadFileInChunks() {
     for (let i = 0; i < binaryData.length; i++) {
         byteArray[i] = binaryData.charCodeAt(i);
     }
-    
+
+
+
+
+new code test 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+@RequestMapping("/api")
+public class FileController {
+
+    @GetMapping("/file")
+    public ResponseEntity<FileResponse> downloadFileInChunks() {
+        String filePath = "/path/to/your/large_file.upd"; // Change this to the path of your file
+        int chunkSize = 1024 * 1024; // 1 MB chunk size
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        try (InputStream inputStream = new FileInputStream(file)) {
+            byte[] buffer = new byte[chunkSize];
+            int bytesRead;
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            String base64Data = Base64.getEncoder().encodeToString(outputStream.toByteArray());
+
+            FileResponse response = new FileResponse();
+            response.setBase64Data(base64Data);
+            response.setFileSize(file.length());
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    static class FileResponse {
+        private String base64Data;
+        private long fileSize;
+
+        public String getBase64Data() {
+            return base64Data;
+        }
+
+        public void setBase64Data(String base64Data) {
+            this.base64Data = base64Data;
+        }
+
+        public long getFileSize() {
+            return fileSize;
+        }
+
+        public void setFileSize(long fileSize) {
+            this.fileSize = fileSize;
+        }
+    }
+}
+
     // Example: saving the file using Blob and <a> download attribute
     const blob = new Blob([byteArray], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
@@ -236,3 +305,95 @@ function downloadFile() {
 
 // Call the function to initiate download
 downloadFile();
+
+
+
+
+new code start
+function downloadFile() {
+    $.ajax({
+        url: 'http://localhost:8080/api/file',
+        type: 'GET',
+        success: function(fileData) {
+            const decodedData = atob(fileData.base64Data);
+            const blob = new Blob([decodedData], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'large_file.upd'; // Change the filename as needed
+            link.click();
+        },
+        error: function(xhr, status, error) {
+            console.error('Error downloading file:', error);
+        }
+    });
+}
+
+// Call the function to initiate download
+downloadFile();
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+@RequestMapping("/api")
+public class FileController {
+
+    @GetMapping("/file")
+    public ResponseEntity<FileResponse> downloadFileInChunks() {
+        String filePath = "/path/to/your/large_file.upd"; // Change this to the path of your file
+        int chunkSize = 1024 * 1024; // 1 MB chunk size
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        try (InputStream inputStream = new FileInputStream(file)) {
+            byte[] buffer = new byte[chunkSize];
+            int bytesRead;
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            String base64Data = Base64.getEncoder().encodeToString(outputStream.toByteArray());
+
+            FileResponse response = new FileResponse();
+            response.setBase64Data(base64Data);
+            response.setFileSize(file.length());
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    static class FileResponse {
+        private String base64Data;
+        private long fileSize;
+
+        public String getBase64Data() {
+            return base64Data;
+        }
+
+        public void setBase64Data(String base64Data) {
+            this.base64Data = base64Data;
+        }
+
+        public long getFileSize() {
+            return fileSize;
+        }
+
+        public void setFileSize(long fileSize) {
+            this.fileSize = fileSize;
+        }
+    }
+}
+
+
