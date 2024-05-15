@@ -429,5 +429,66 @@ function downloadFile() {
     });
 }
 
+new code 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Base64;
+
+@RestController
+public class FileController {
+
+    @GetMapping("/downloadFile")
+    public ResponseEntity<?> downloadFile() {
+        String filePath = "path/to/your/file.upd";
+        File file = new File(filePath);
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024]; // Adjust the chunk size as needed
+            int bytesRead;
+            StringBuilder base64EncodedFile = new StringBuilder();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] chunk = Arrays.copyOf(buffer, bytesRead);
+                String base64Chunk = Base64.getEncoder().encodeToString(chunk);
+                base64EncodedFile.append(base64Chunk);
+            }
+            fis.close();
+            return ResponseEntity.ok().body(base64EncodedFile.toString());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error downloading file");
+        }
+    }
+}
+
+
+$.ajax({
+    url: '/downloadFile',
+    type: 'GET',
+    success: function(data) {
+        // Decode Base64 data
+        var binaryData = atob(data);
+        var byteArray = new Uint8Array(binaryData.length);
+        for (var i = 0; i < binaryData.length; i++) {
+            byteArray[i] = binaryData.charCodeAt(i);
+        }
+        var blob = new Blob([byteArray], { type: 'application/octet-stream' });
+
+        // Create download link and trigger download
+        var url = window.URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        a.href = url;
+        a.download = 'filename.upd'; // Specify the filename
+        a.click();
+        window.URL.revokeObjectURL(url);
+    },
+    error: function(xhr, status, error) {
+        console.error('Error downloading file:', error);
+    }
+});
+
+
 
 
