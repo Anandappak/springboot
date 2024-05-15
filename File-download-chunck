@@ -37,3 +37,40 @@ public class FileDownloader {
         System.out.println("File downloaded successfully in chunks.");
     }
 }
+
+java script 
+async function downloadFileInChunks(url, chunkSize) {
+    const response = await fetch(url);
+    const fileSize = parseInt(response.headers.get('Content-Length'));
+    let start = 0;
+    let end = chunkSize - 1;
+
+    while (start < fileSize) {
+        const headers = { 'Range': `bytes=${start}-${end}` };
+        const chunkResponse = await fetch(url, { headers });
+        const chunkBlob = await chunkResponse.blob();
+        // Handle the chunk data here, for example, save it to a file
+        saveChunkToFile(chunkBlob);
+
+        start = end + 1;
+        end = Math.min(start + chunkSize - 1, fileSize - 1);
+    }
+}
+
+function saveChunkToFile(chunkBlob) {
+    // Example: saving the chunk to a file
+    const blobUrl = URL.createObjectURL(chunkBlob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'chunk.zip'; // Example filename
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(blobUrl);
+    document.body.removeChild(a);
+}
+
+// Example usage
+const fileUrl = 'http://example.com/file.zip';
+const chunkSize = 1024 * 1024; // 1 MB chunk size
+downloadFileInChunks(fileUrl, chunkSize);
+
