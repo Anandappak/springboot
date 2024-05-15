@@ -397,3 +397,37 @@ public class FileController {
 }
 
 
+new concept 
+@RestController
+public class FileController {
+
+    @GetMapping("/download")
+    public ResponseEntity<byte[]> downloadFile() throws IOException {
+        File file = new File("path/to/your/file.upd");
+        byte[] fileContent = Files.readAllBytes(file.toPath());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"file.upd\"")
+                .body(Base64.getEncoder().encode(fileContent));
+    }
+}
+
+function downloadFile() {
+    $.ajax({
+        url: '/download',
+        type: 'GET',
+        success: function(data) {
+            var decodedData = atob(data); // Decode Base64 data
+            var blob = new Blob([decodedData], { type: 'application/octet-stream' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'file.upd';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    });
+}
+
+
+
