@@ -1,4 +1,4 @@
-code
+nocode
 How to send chunck file to frontend end and collecting chuck file and append chuck files in front end and using concep front end javascript and backend java spring boot
 <!DOCTYPE html>
 <html lang="en">
@@ -383,5 +383,165 @@ public class FileDownloadController {
     </script>
 </head>
 <body>
-   
 
+
+new code 1
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/upd/file.upd"; // Path to your .upd file
+
+    @GetMapping("/downloadChunkedFile")
+    public ResponseEntity<String> downloadChunkedFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024]; // 1MB chunk size
+            int bytesRead;
+
+            StringBuilder base64StringBuilder = new StringBuilder();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] chunk = new byte[bytesRead];
+                System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+                String base64Chunk = Base64.getEncoder().encodeToString(chunk);
+                base64StringBuilder.append(base64Chunk);
+            }
+
+            fis.close();
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(base64StringBuilder.toString());
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+
+   <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Download</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#downloadButton").click(function () {
+                downloadFile();
+            });
+        });
+
+        function downloadFile() {
+            $.get("/downloadChunkedFile", function (data) {
+                downloadBase64File(data);
+            });
+        }
+
+        function downloadBase64File(base64Data) {
+            const blob = base64toBlob(base64Data, 'application/octet-stream');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'file.upd'; // Set the file name here
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function base64toBlob(base64Data, contentType) {
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray], {type: contentType});
+        }
+    </script>
+</head>
+<body>
+    <button id="downloadButton">Download File</button>
+</body>
+</html>
+
+
+
+new code 2
+
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/upd/file.upd"; // Path to your .upd file
+
+    @GetMapping("/downloadChunkedFile")
+    public ResponseEntity<InputStreamResource> downloadChunkedFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+
+            // Wrap the FileInputStream in a BufferedInputStream for performance
+            BufferedInputStream bis = new BufferedInputStream(fis);
+
+            // Set content type and attachment disposition for the response
+            ResponseEntity<InputStreamResource> responseEntity = ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"")
+                    .body(new InputStreamResource(bis));
+
+            return responseEntity;
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+https://code.jquery.com/jquery-3.6.0.min.js
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Download</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#downloadButton").click(function () {
+                downloadFile();
+            });
+        });
+
+        function downloadFile() {
+            // Trigger the download by creating a hidden iframe
+            $("<iframe/>", {
+                src: "/downloadChunkedFile",
+                style: "display:none"
+            }).appendTo("body");
+        }
+    </script>
+</head>
+<body>
+    <button id="downloadButton">Download File</button>
+</body>
+</html>
