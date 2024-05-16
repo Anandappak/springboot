@@ -226,3 +226,84 @@ $(document).ready(function() {
     // Call the function to download the large file
     downloadLargeFile();
 });
+
+ex
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/file"; // Path to your file
+
+    @GetMapping("/downloadChunkedFile")
+    public ResponseEntity<String> downloadChunkedFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024]; // 1MB chunk size
+            int bytesRead;
+            StringBuilder base64StringBuilder = new StringBuilder();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] chunk = new byte[bytesRead];
+                System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+                String base64Chunk = Base64.getEncoder().encodeToString(chunk);
+                base64StringBuilder.append(base64Chunk);
+            }
+
+            fis.close();
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(base64StringBuilder.toString());
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+
+https://code.jquery.com/jquery-3.6.0.min.js
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Download</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#downloadButton").click(function () {
+                downloadFile();
+            });
+        });
+
+        function downloadFile() {
+            $.get("/downloadChunkedFile", function (data) {
+                appendFileChunks(data);
+            });
+        }
+
+        function appendFileChunks(base64Chunks) {
+            // Split the base64Chunks into individual chunks (each representing a chunk of the file)
+            const chunkSize = 1024 * 1024; // 1MB chunk size
+            for (let i = 0; i < base64Chunks.length; i += chunkSize) {
+                const chunk = base64Chunks.substring(i, i + chunkSize);
+                // Append the chunk to the file or do whatever you need with it
+                console.log("Received chunk:", chunk);
+            }
+            console.log("All chunks received and processed.");
+        }
+    </script>
+</head>
+<body>
+    <button id="downloadButton">Download File</button>
+</body>
+</html>
