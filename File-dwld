@@ -159,3 +159,70 @@ function downloadChunkedFile() {
     });
 }
 
+ex
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/large/file"; // Path to your large file
+
+    @GetMapping("/downloadLargeFile")
+    public ResponseEntity<String> downloadLargeFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024]; // 1MB chunk size
+            int bytesRead;
+            StringBuilder base64StringBuilder = new StringBuilder();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] chunk = new byte[bytesRead];
+                System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+                String base64Chunk = Base64.getEncoder().encodeToString(chunk);
+                base64StringBuilder.append(base64Chunk);
+            }
+
+            fis.close();
+
+            return ResponseEntity.ok()
+                    .body(base64StringBuilder.toString());
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+js
+$(document).ready(function() {
+    // Function to download large file in chunks
+    function downloadLargeFile() {
+        $.ajax({
+            url: '/downloadLargeFile',
+            method: 'GET',
+            success: function(data) {
+                // Decode Base64 chunks
+                var chunks = data.match(/.{1,1048576}/g); // Split into 1MB chunks
+                var fileData = '';
+
+                chunks.forEach(function(chunk) {
+                    fileData += atob(chunk); // Decode Base64
+                });
+
+                // Assemble file on the client side (fileData contains the complete file)
+                console.log('File downloaded successfully.');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error downloading file:', error);
+            }
+        });
+    }
+
+    // Call the function to download the large file
+    downloadLargeFile();
+});
