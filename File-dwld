@@ -1,0 +1,161 @@
+code
+How to send chunck file to frontend end and collecting chuck file and append chuck files in front end and using concep front end javascript and backend java spring boot
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chunked File Download</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const chunkSize = 1024 * 1024; // 1MB chunk size
+            let offset = 0;
+            let totalChunks = 0;
+            let fileData = "";
+
+            function downloadChunk() {
+                $.ajax({
+                    url: "/downloadChunkedFile",
+                    type: "GET",
+                    data: { offset: offset },
+                    success: function(response) {
+                        if (response === "") {
+                            // End of file
+                            console.log("File download complete");
+                            assembleFile(fileData);
+                            return;
+                        }
+                        fileData += response;
+                        offset += chunkSize;
+                        totalChunks++;
+                        console.log("Downloaded chunk #" + totalChunks);
+                        downloadChunk();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error downloading chunk:", error);
+                    }
+                });
+            }
+
+            function assembleFile(data) {
+                // Decode Base64 chunks and assemble the file
+                // For demonstration, let's log the file size
+                const fileSize = atob(data).length;
+                console.log("File assembled with size:", fileSize, "bytes");
+            }
+
+            downloadChunk();
+        });
+    </script>
+</head>
+<body>
+    <!-- No content needed for this example -->
+</body>
+</html>
+
+
+backe end
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/large/file"; // Path to your large file
+
+    @GetMapping("/downloadChunkedFile")
+    public ResponseEntity<String> downloadChunkedFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024]; // 1MB chunk size
+            int bytesRead;
+            StringBuilder base64StringBuilder = new StringBuilder();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] chunk = new byte[bytesRead];
+                System.arraycopy(buffer, 0, chunk, 0, bytesRead);
+                String base64Chunk = Base64.getEncoder().encodeToString(chunk);
+                base64StringBuilder.append(base64Chunk);
+            }
+
+            fis.close();
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(base64StringBuilder.toString());
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+
+ex
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.io.*;
+import java.util.Base64;
+
+@RestController
+public class FileDownloadController {
+
+    private static final String FILE_PATH = "path/to/your/file"; // Path to your 1GB file
+
+    @GetMapping("/downloadChunkedFile")
+    public ResponseEntity<byte[]> downloadChunkedFile() {
+        try {
+            File file = new File(FILE_PATH);
+            FileInputStream fis = new FileInputStream(file);
+            byte[] buffer = new byte[1024 * 1024]; // 1MB chunk size
+            int bytesRead;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+
+            fis.close();
+
+            byte[] fileBytes = baos.toByteArray();
+            byte[] base64Bytes = Base64.getEncoder().encode(fileBytes);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(base64Bytes);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+}
+js
+function downloadChunkedFile() {
+    $.ajax({
+        url: '/downloadChunkedFile',
+        type: 'GET',
+        success: function(data) {
+            // Decode Base64 data
+            var decodedData = atob(data);
+            // Append the decoded data to a hidden DOM element or process it directly
+            // Example: $('#fileContent').append(decodedData);
+            console.log("Chunk received and appended.");
+        },
+        error: function(xhr, status, error) {
+            console.error('Error downloading chunk:', error);
+        }
+    });
+}
+
