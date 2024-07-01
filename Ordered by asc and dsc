@@ -63,3 +63,27 @@ public class JsonNodeSorting {
         }
     }
 }
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
+
+public class JsonSortExample {
+    public static void main(String[] args) throws IOException {
+        String json = "[{\"date\":\"2024-06-30\"},{\"date\":\"2023-01-01\"},{\"date\":\"2024-01-01\"}]";
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode jsonNodeList = (ArrayNode) mapper.readTree(json);
+
+        Collections.sort(jsonNodeList, new Comparator<JsonNode>() {
+            @Override
+            public int compare(JsonNode o1, JsonNode o2) {
+                String date1 = o1.get("date").asText();
+                String date2 = o2.get("date").asText();
+                return date2.compareTo(date1); // Descending order
+            }
+       
+
