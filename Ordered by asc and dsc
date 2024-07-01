@@ -1,0 +1,65 @@
+order by
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class JsonNodeSorting {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public static void main(String[] args) throws IOException {
+        // Example JSON input as a string (replace with your actual JSON data)
+        String jsonString = "[{\"id\":1,\"date\":\"2023-05-15\"},{\"id\":2,\"date\":\"2023-07-20\"},{\"id\":3,\"date\":\"2023-04-10\"}]";
+        
+        // Convert JSON string to list of objects
+        List<MyObject> list = new ArrayList<>();
+        JsonNode jsonNode = objectMapper.readTree(jsonString);
+        for (JsonNode node : jsonNode) {
+            MyObject obj = objectMapper.treeToValue(node, MyObject.class);
+            list.add(obj);
+        }
+        
+        // Sort the list by date in descending order
+        Collections.sort(list, Comparator.comparing(MyObject::getDate).reversed());
+        
+        // Print sorted list
+        list.forEach(System.out::println);
+    }
+
+    // Define your POJO class representing each JSON object
+    static class MyObject {
+        private int id;
+        private String date;
+
+        // Getters and setters
+        public int getId() {
+            return id;
+        }
+
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        // toString method for printing
+        @Override
+        public String toString() {
+            return "MyObject{" +
+                    "id=" + id +
+                    ", date='" + date + '\'' +
+                    '}';
+        }
+    }
+}
