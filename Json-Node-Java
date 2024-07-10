@@ -249,3 +249,52 @@ public class Main {
         // Now filteredList contains JsonNode objects with dates within 2 hours from the current time
     }
 }
+
+
+filter date beetween
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
+
+public class JsonDateFilter {
+
+    public static void main(String[] args) throws Exception {
+        String jsonString = "[{\"createdDate\":\"2024-07-01\"},{\"createdDate\":\"2024-07-05\"},{\"createdDate\":\"2024-07-10\"}]";
+
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode jsonNodeList = (ArrayNode) mapper.readTree(jsonString);
+
+        String startDateStr = "2024-07-02";
+        String endDateStr = "2024-07-08";
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate startDate = LocalDate.parse(startDateStr, formatter);
+        LocalDate endDate = LocalDate.parse(endDateStr, formatter);
+
+        ArrayNode filteredNodes = filterJsonNodesByDate(jsonNodeList, startDate, endDate);
+
+        System.out.println(filteredNodes.toPrettyString());
+    }
+
+    public static ArrayNode filterJsonNodesByDate(ArrayNode jsonNodeList, LocalDate startDate, LocalDate endDate) {
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayNode filteredNodes = mapper.createArrayNode();
+
+        for (JsonNode node : jsonNodeList) {
+            String createdDateStr = node.get("createdDate").asText();
+            LocalDate createdDate = LocalDate.parse(createdDateStr);
+
+            if ((createdDate.isEqual(startDate) || createdDate.isAfter(startDate)) &&
+                (createdDate.isEqual(endDate) || createdDate.isBefore(endDate))) {
+                filteredNodes.add(node);
+            }
+        }
+
+        return filteredNodes;
+    }
+}
+
