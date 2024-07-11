@@ -164,3 +164,33 @@ public class GMTToISTDate {
         System.out.println("IST Date and Time: " + formattedISTDateTime);
     }
 }
+
+IST date to GMT Date
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class ISTToGMTDate {
+    public static void main(String[] args) {
+        // Assuming you have a date-time string in IST
+        String istDateTimeString = "2023-07-11T12:00:00"; // Replace with your date-time string
+
+        // Parse the IST date-time string to LocalDateTime
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime istDateTime = LocalDateTime.parse(istDateTimeString, formatter);
+        
+        // Convert LocalDateTime in IST to ZonedDateTime in IST
+        ZonedDateTime istZonedDateTime = istDateTime.atZone(ZoneId.of("Asia/Kolkata"));
+        
+        // Convert IST ZonedDateTime to GMT ZonedDateTime
+        ZonedDateTime gmtZonedDateTime = istZonedDateTime.withZoneSameInstant(ZoneId.of("GMT"));
+        
+        // Format the GMT date-time if needed
+        String formattedGMTDateTime = gmtZonedDateTime.format(formatter);
+        
+        // Print the formatted GMT date and time
+        System.out.println("GMT Date and Time: " + formattedGMTDateTime);
+    }
+}
+
