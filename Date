@@ -84,3 +84,83 @@ public class JsonDataFilter {
         }
     }
 }
+
+timestamp to GMT date
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+public class TimestampToGMTDate {
+    public static void main(String[] args) {
+        // Assuming you have a timestamp in milliseconds
+        long timestampInMillis = 1626000000000L; // Replace with your timestamp
+        
+        // Convert timestamp to LocalDateTime in GMT
+        LocalDateTime dateTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(timestampInMillis),
+                ZoneId.of("GMT")
+        );
+        
+        // Formatting LocalDateTime if needed
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String formattedDateTime = dateTime.format(formatter);
+        
+        // Print the formatted date and time
+        System.out.println("GMT Date and Time: " + formattedDateTime);
+    }
+}
+
+timestamp to IST 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+public class TimestampToISTDate {
+    public static void main(String[] args) {
+        // Assuming you have a timestamp in milliseconds
+        long timestampInMillis = 1626000000000L; // Replace with your timestamp
+        
+        // Convert timestamp to LocalDateTime in IST
+        LocalDateTime dateTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(timestampInMillis),
+                ZoneId.of("Asia/Kolkata")
+        );
+        
+        // Formatting LocalDateTime if needed
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String formattedDateTime = dateTime.format(formatter);
+        
+        // Print the formatted date and time
+        System.out.println("IST Date and Time: " + formattedDateTime);
+    }
+}
+GMT date to IST date
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class GMTToISTDate {
+    public static void main(String[] args) {
+        // Assuming you have a date-time string in GMT
+        String gmtDateTimeString = "2023-07-11T12:00:00"; // Replace with your date-time string
+
+        // Parse the GMT date-time string to LocalDateTime
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        LocalDateTime gmtDateTime = LocalDateTime.parse(gmtDateTimeString, formatter);
+        
+        // Convert LocalDateTime in GMT to ZonedDateTime in GMT
+        ZonedDateTime gmtZonedDateTime = gmtDateTime.atZone(ZoneId.of("GMT"));
+        
+        // Convert GMT ZonedDateTime to IST ZonedDateTime
+        ZonedDateTime istZonedDateTime = gmtZonedDateTime.withZoneSameInstant(ZoneId.of("Asia/Kolkata"));
+        
+        // Format the IST date-time if needed
+        String formattedISTDateTime = istZonedDateTime.format(formatter);
+        
+        // Print the formatted IST date and time
+        System.out.println("IST Date and Time: " + formattedISTDateTime);
+    }
+}
