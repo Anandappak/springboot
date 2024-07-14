@@ -1,0 +1,146 @@
+Step 1: Set Up Your Spring Boot Project
+
+Step 2: Add Dependencies
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-s3</artifactId>
+    <version>1.12.569</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.parquet</groupId>
+    <artifactId>parquet-hadoop</artifactId>
+    <version>1.12.3</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.parquet</groupId>
+    <artifactId>parquet-avro</artifactId>
+    <version>1.12.3</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-common</artifactId>
+    <version>3.3.4</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-client</artifactId>
+    <version>3.3.4</version>
+</dependency>
+
+Step 3: Configure AWS Credentials
+You can set up your AWS credentials in your application.properties file or use environment variables. Here’s an example using application.properties:
+aws.accessKeyId=your-access-key-id
+aws.secretKey=your-secret-key
+aws.region=your-region
+aws.s3.bucket=your-bucket-name
+
+Step 4: Implement a Service to Read the Parquet File from S3
+Create a service to handle the logic for reading the Parquet file from S3:
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.S3Object;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.s3a.S3AFileSystem;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.example.GroupReadSupport;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.example.data.Group;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class ParquetService {
+
+    @Value("${aws.accessKeyId}")
+    private String accessKeyId;
+
+    @Value("${aws.secretKey}")
+    private String secretKey;
+
+    @Value("${aws.region}")
+    private String region;
+
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+
+    private AmazonS3 s3Client;
+
+    @PostConstruct
+    private void initializeAmazon() {
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, secretKey);
+        this.s3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(Regions.fromName(region))
+                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+                .build();
+    }
+
+    public List<Group> readParquetFile(String fileKey) throws IOException {
+        S3Object s3Object = s3Client.getObject(bucketName, fileKey);
+
+        Configuration hadoopConfig = new Configuration();
+        hadoopConfig.set("fs.s3a.access.key", accessKeyId);
+        hadoopConfig.set("fs.s3a.secret.key", secretKey);
+        hadoopConfig.set("fs.s3a.endpoint", "s3.amazonaws.com");
+
+        Path path = new Path("s3a://" + bucketName + "/" + fileKey);
+        S3AFileSystem s3aFileSystem = new S3AFileSystem();
+        s3aFileSystem.initialize(path.toUri(), hadoopConfig);
+
+        List<Group> records = new ArrayList<>();
+        try (FSDataInputStream inputStream = s3aFileSystem.open(path)) {
+            ParquetReader<Group> reader = ParquetReader.builder(new GroupReadSupport(), HadoopInputFile.fromStream(inputStream, hadoopConfig))
+                    .build();
+
+            Group group;
+            while ((group = reader.read()) != null) {
+                records.add(group);
+            }
+        }
+        return records;
+    }
+}
+
+Step 5: Create a REST Controller
+Create a REST controller to handle the GET request and return the Parquet data as JSON:
+import org.apache.parquet.example.data.Group;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+public class ParquetController {
+
+    @Autowired
+    private ParquetService parquetService;
+
+    @GetMapping("/read-parquet")
+    public List<String> readParquetFile(@RequestParam String fileKey) throws IOException {
+        List<Group> records = parquetService.readParquetFile(fileKey);
+        return records.stream()
+                .map(Group::toString)
+                .collect(Collectors.toList());
+    }
+}
+
+
+
+
