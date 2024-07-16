@@ -271,3 +271,130 @@ public class ParquetController {
         return s3ParquetService.readParquetFromS3(bucketName, key);
     }
 }
+new logic using hadoop fs 
+step 1 :
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-avro</artifactId>
+        <version>1.12.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>3.3.1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-aws</artifactId>
+        <version>3.3.1</version>
+    </dependency>
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+    </dependency>
+</dependencies>
+
+step 2:
+
+aws.accessKeyId=YOUR_ACCESS_KEY
+aws.secretKey=YOUR_SECRET_KEY
+aws.region=YOUR_AWS_REGION
+hadoop.fs.s3a.access.key=${aws.accessKeyId}
+hadoop.fs.s3a.secret.key=${aws.secretKey}
+hadoop.fs.s3a.endpoint=s3.${aws.region}.amazonaws.com
+hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
+
+step 3:
+package com.example.demo.service;
+
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class S3ParquetService {
+
+    @Value("${aws.accessKeyId}")
+    private String accessKey;
+
+    @Value("${aws.secretKey}")
+    private String secretKey;
+
+    @Value("${aws.region}")
+    private String region;
+
+    @Value("${hadoop.fs.s3a.endpoint}")
+    private String s3Endpoint;
+
+    private Configuration getHadoopConfiguration() {
+        Configuration conf = new Configuration();
+        conf.set("fs.s3a.access.key", accessKey);
+        conf.set("fs.s3a.secret.key", secretKey);
+        conf.set("fs.s3a.endpoint", s3Endpoint);
+        conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+        return conf;
+    }
+
+    public List<GenericRecord> readParquetFromS3(String bucketName, String key) throws IOException {
+        Configuration conf = getHadoopConfiguration();
+        String s3Path = String.format("s3a://%s/%s", bucketName, key);
+
+        List<GenericRecord> records = new ArrayList<>();
+        try (ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(HadoopInputFile.fromPath(new Path(s3Path), conf)).build()) {
+            GenericRecord record;
+            while ((record = reader.read()) != null) {
+                records.add(record);
+            }
+        }
+        return records;
+    }
+}
+
+step 4:package com.example.demo.controller;
+
+import com.example.demo.service.S3ParquetService;
+import org.apache.avro.generic.GenericRecord;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.util.List;
+
+@RestController
+public class ParquetController {
+
+    @Autowired
+    private S3ParquetService s3ParquetService;
+
+    @GetMapping("/read-parquet")
+    public List<GenericRecord> readParquet(@RequestParam String date, @RequestParam String name) throws IOException {
+        String bucketName = "your-bucket-name"; // Specify your bucket name
+        String key = date + "/" + name + "/timestamp.parquet"; // Construct the key based on input parameters
+        return s3ParquetService.readParquetFromS3(bucketName, key);
+    }
+}
+
+step 5:
+http://localhost:8080/read-parquet?date=2021-07-15&name=exampleName
+
+Golbal search logic 
