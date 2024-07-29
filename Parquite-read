@@ -1,0 +1,67 @@
+code dependancy : -
+<dependencies>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-aws</artifactId>
+        <version>3.2.2</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>3.2.2</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-hadoop</artifactId>
+        <version>1.11.1</version>
+    </dependency>
+    <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-bundle</artifactId>
+        <version>1.11.969</version>
+    </dependency>
+</dependencies>
+
+2)Configure Hadoop to connect to S3
+import org.apache.hadoop.conf.Configuration;
+
+public class S3Configuration {
+    public static Configuration getHadoopConfiguration() {
+        Configuration conf = new Configuration();
+        conf.set("fs.s3a.access.key", "your-access-key");
+        conf.set("fs.s3a.secret.key", "your-secret-key");
+        conf.set("fs.s3a.endpoint", "s3.amazonaws.com");
+        conf.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+        return conf;
+    }
+}
+
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.tools.read.SimpleReadSupport;
+
+import java.io.IOException;
+
+public class ParquetReaderExample {
+    public static void main(String[] args) {
+        Configuration conf = S3Configuration.getHadoopConfiguration();
+        Path parquetFilePath = new Path("s3a://your-bucket/your-parquet-file.parquet");
+
+        try {
+            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, parquetFilePath);
+            MessageType schema = readFooter.getFileMetaData().getSchema();
+
+            System.out.println("Parquet schema: " + schema);
+
+            ParquetFileReader reader = ParquetFileReader.open(conf, parquetFilePath, new SimpleReadSupport());
+            // Read and process the Parquet file content here
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
