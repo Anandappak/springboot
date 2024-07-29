@@ -185,3 +185,54 @@ public class S3ParquetReader {
     }
 }
 
+single java code
+
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.S3Object;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.s3a.S3AFileSystem;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.schema.MessageType;
+
+import java.io.InputStream;
+
+public class S3ParquetReader {
+    public static void main(String[] args) throws Exception {
+        String bucketName = "your-bucket-name";
+        String key = "path/to/your/file.parquet";
+        String region = "your-region"; // e.g., "us-west-2"
+        String accessKey = "your-access-key";
+        String secretKey = "your-secret-key";
+
+        // Initialize AWS S3 client
+        BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKey, secretKey);
+        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(region)
+                .withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+                .build();
+
+        // Get the Parquet file from S3
+        S3Object s3Object = s3Client.getObject(bucketName, key);
+        InputStream inputStream = s3Object.getObjectContent();
+
+        // Set up Hadoop configuration to use S3
+        Configuration conf = new Configuration();
+        conf.set("fs.s3a.access.key", accessKey);
+        conf.set("fs.s3a.secret.key", secretKey);
+        conf.set("fs.s3a.endpoint", "s3." + region + ".amazonaws.com");
+        conf.set("fs.s3a.impl", S3AFileSystem.class.getName());
+
+        // Read the Parquet file
+        Path path = new Path("s3a://" + bucketName + "/" + key);
+        ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, path);
+        MessageType schema = readFooter.getFileMetaData().getSchema();
+
+        // Print the schema
+        System.out.println("Schema: " + schema);
+    }
+}
