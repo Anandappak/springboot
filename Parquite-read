@@ -65,3 +65,123 @@ public class ParquetReaderExample {
         }
     }
 }
+logic started
+
+<dependencies>
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+        <version>2.17.106</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-avro</artifactId>
+        <version>1.12.2</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>3.3.1</version>
+    </dependency>
+</dependencies>
+
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
+
+import java.nio.file.Paths;
+
+public class S3ParquetReader {
+    private static final Region REGION = Region.US_WEST_2;
+    private static final String BUCKET_NAME = "your-bucket-name";
+    private static final String KEY = "path/to/your-file.parquet";
+
+    public static void main(String[] args) {
+        S3Client s3 = S3Client.builder()
+                .region(REGION)
+                .credentialsProvider(ProfileCredentialsProvider.create())
+                .build();
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                .key(KEY)
+                .build();
+
+        s3.getObject(getObjectRequest, Paths.get("/path/to/local/parquet-file.parquet"));
+    }
+}
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.avro.generic.GenericRecord;
+
+import java.io.IOException;
+
+public class ParquetFileReader {
+    public static void main(String[] args) {
+        Path parquetFilePath = new Path("/path/to/local/parquet-file.parquet");
+        Configuration configuration = new Configuration();
+
+        try (ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(HadoopInputFile.fromPath(parquetFilePath, configuration)).build()) {
+            GenericRecord record;
+            while ((record = reader.read()) != null) {
+                System.out.println(record);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.avro.generic.GenericRecord;
+import java.nio.file.Paths;
+import java.io.IOException;
+
+public class S3ParquetReader {
+    private static final Region REGION = Region.US_WEST_2;
+    private static final String BUCKET_NAME = "your-bucket-name";
+    private static final String KEY = "path/to/your-file.parquet";
+
+    public static void main(String[] args) {
+        // Step 1: Initialize AWS S3 Client
+        S3Client s3 = S3Client.builder()
+                .region(REGION)
+                .credentialsProvider(ProfileCredentialsProvider.create())
+                .build();
+
+        // Step 2: Download Parquet file from S3 to local filesystem
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(BUCKET_NAME)
+                .key(KEY)
+                .build();
+        s3.getObject(getObjectRequest, Paths.get("/path/to/local/parquet-file.parquet"));
+
+        // Step 3: Read the Parquet file
+        Path parquetFilePath = new Path("/path/to/local/parquet-file.parquet");
+        Configuration configuration = new Configuration();
+
+        try (ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(parquetFilePath).withConf(configuration).build()) {
+            GenericRecord record;
+            while ((record = reader.read()) != null) {
+                System.out.println(record);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
