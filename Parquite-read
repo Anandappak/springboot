@@ -236,3 +236,65 @@ public class S3ParquetReader {
         System.out.println("Schema: " + schema);
     }
 }
+
+new code start
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.example.data.Group;
+import org.apache.parquet.example.data.simple.SimpleGroup;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.schema.MessageType;
+
+import java.net.URI;
+
+public class ParquetReaderExample {
+    public static void main(String[] args) {
+        try {
+            Configuration conf = new Configuration();
+            // Set AWS credentials (if needed, depending on your setup)
+            conf.set("fs.s3a.access.key", "YOUR_AWS_ACCESS_KEY");
+            conf.set("fs.s3a.secret.key", "YOUR_AWS_SECRET_KEY");
+            // Set the S3 file path
+            String s3FilePath = "s3a://your-bucket/your-file.parquet";
+            Path parquetFilePath = new Path(new URI(s3FilePath));
+
+            // Open Parquet file reader
+            FileSystem fs = parquetFilePath.getFileSystem(conf);
+            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, parquetFilePath);
+            MessageType schema = readFooter.getFileMetaData().getSchema();
+
+            try (ParquetFileReader reader = ParquetFileReader.open(conf, parquetFilePath)) {
+                // Read all rows
+                SimpleGroup record;
+                while ((record = reader.read()) != null) {
+                    // Process each record
+                    System.out.println(record);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+<dependencies>
+    <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-avro</artifactId>
+        <version>1.12.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>3.2.1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-client</artifactId>
+        <version>3.2.1</version>
+    </dependency>
+</dependencies>
+
+
