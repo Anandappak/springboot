@@ -297,4 +297,60 @@ public class ParquetReaderExample {
     </dependency>
 </dependencies>
 
+logic code new 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.s3a.S3AFileSystem;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.schema.MessageType;
+
+public class ParquetReaderExample {
+    public static void main(String[] args) {
+        String bucketName = "your-bucket-name";
+        String key = "path/to/your-file.parquet";
+        
+        Configuration conf = new Configuration();
+        conf.set("fs.s3a.access.key", "YOUR_ACCESS_KEY");
+        conf.set("fs.s3a.secret.key", "YOUR_SECRET_KEY");
+        conf.set("fs.s3a.endpoint", "s3.amazonaws.com");
+
+        try {
+            Path parquetPath = new Path("s3a://" + bucketName + "/" + key);
+            HadoopInputFile inputFile = HadoopInputFile.fromPath(parquetPath, conf);
+            ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(inputFile).build();
+
+            GenericRecord record;
+            while ((record = reader.read()) != null) {
+                System.out.println(record);
+            }
+
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+<dependency>
+    <groupId>org.apache.parquet</groupId>
+    <artifactId>parquet-avro</artifactId>
+    <version>1.12.3</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-common</artifactId>
+    <version>3.3.0</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-client</artifactId>
+    <version>3.3.0</version>
+</dependency>
+
+<dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-s3</artifactId>
+    <version>1.12.100</version>
+</dependency>
 
