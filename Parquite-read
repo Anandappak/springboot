@@ -354,3 +354,78 @@ public class ParquetReaderExample {
     <version>1.12.100</version>
 </dependency>
 
+new code 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.ParquetReader.Builder;
+import org.apache.parquet.hadoop.example.ExampleInputFormat;
+import org.apache.parquet.hadoop.example.GroupReadSupport;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.MessageTypeParser;
+
+import java.net.URI;
+
+public class ParquetReaderExample {
+
+    public static void main(String[] args) throws Exception {
+        String s3Uri = "s3a://your-bucket/your-file.parquet";
+
+        Configuration conf = new Configuration();
+        conf.set("fs.s3a.access.key", "YOUR_ACCESS_KEY");
+        conf.set("fs.s3a.secret.key", "YOUR_SECRET_KEY");
+        conf.set("fs.s3a.endpoint", "s3.amazonaws.com");
+
+        Path parquetPath = new Path(s3Uri);
+
+        ParquetReader<Group> reader = null;
+        try {
+            reader = ParquetReader.builder(new GroupReadSupport(), parquetPath)
+                                  .withConf(conf)
+                                  .build();
+
+            Group group;
+            while ((group = reader.read()) != null) {
+                System.out.println(group);
+            }
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+        }
+    }
+}
+
+<dependencies>
+    <!-- Apache Hadoop Common -->
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>3.3.1</version>
+    </dependency>
+
+    <!-- Apache Hadoop AWS -->
+    <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-aws</artifactId>
+        <version>3.3.1</version>
+    </dependency>
+
+    <!-- AWS SDK for Java -->
+    <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>s3</artifactId>
+        <version>2.17.110</version>
+    </dependency>
+
+    <!-- Parquet Hadoop -->
+    <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-hadoop</artifactId>
+        <version>1.12.0</version>
+    </dependency>
+</dependencies>
