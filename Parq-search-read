@@ -1,0 +1,103 @@
+
+aws.accessKeyId=your_access_key
+aws.secretKey=your_secret_key
+aws.region=your_region
+
+<dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-s3</artifactId>
+    <version>1.12.506</version>
+</dependency>
+
+<dependency>
+    <groupId>org.apache.parquet</groupId>
+    <artifactId>parquet-avro</artifactId>
+    <version>1.12.3</version>
+</dependency>
+
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.14.0</version>
+</dependency>
+
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.S3Object;
+
+public AmazonS3 createS3Client() {
+    return AmazonS3ClientBuilder.standard()
+            .withRegion("your-region")
+            .build();
+}
+
+
+import com.amazonaws.services.s3.model.S3Object;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.Path;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@Service
+public class ParquetService {
+
+    private final AmazonS3 s3Client;
+
+    public ParquetService(AmazonS3 s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public String readParquetFromS3(String bucketName, String key) throws Exception {
+        S3Object s3Object = s3Client.getObject(bucketName, key);
+        InputStream inputStream = s3Object.getObjectContent();
+
+        // Read parquet file
+        Configuration conf = new Configuration();
+        Path path = new Path("s3://"+bucketName+"/"+key);
+        FSDataInputStream fsDataInputStream = new FSDataInputStream(inputStream);
+
+        ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(HadoopInputFile.fromStream(fsDataInputStream, conf)).build();
+        GenericRecord record;
+
+        List<GenericRecord> records = new ArrayList<>();
+        while ((record = reader.read()) != null) {
+            records.add(record);
+        }
+
+        // Convert to JSON using Jackson
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writeValueAsString(records);
+    }
+}
+
+
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ParquetController {
+
+    private final ParquetService parquetService;
+
+    public ParquetController(ParquetService parquetService) {
+        this.parquetService = parquetService;
+    }
+
+    @GetMapping("/parquet")
+    public String getParquetData(@RequestParam String bucket, @RequestParam String key) throws Exception {
+        return parquetService.readParquetFromS3(bucket, key);
+    }
+}
+
+
