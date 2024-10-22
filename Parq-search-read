@@ -100,4 +100,105 @@ public class ParquetController {
     }
 }
 
+new ....
+<!-- AWS SDK for S3 -->
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>s3</artifactId>
+</dependency>
+
+<!-- Parquet reader -->
+<dependency>
+    <groupId>org.apache.parquet</groupId>
+    <artifactId>parquet-hadoop</artifactId>
+    <version>1.12.0</version>
+</dependency>
+
+<!-- Jackson for JSON -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.13.0</version>
+</dependency>
+
+
+cloud.aws.region.static=us-west-2
+cloud.aws.credentials.access-key=your-access-key
+cloud.aws.credentials.secret-key=your-secret-key
+
+
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.schema.MessageType;
+import org.apache.hadoop.fs.Path;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+
+@Service
+public class S3ParquetService {
+
+    private final S3Client s3Client;
+
+    @Autowired
+    public S3ParquetService(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public String readParquetFile(String bucketName, String key) throws IOException {
+        // Fetch the Parquet file from S3 without downloading it locally
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
+        
+        InputStream inputStream = s3Client.getObject(getObjectRequest);
+
+        // Use Hadoop Path to create an input stream for Parquet reader
+        Path path = new Path(inputStream); 
+        ParquetReader<?> reader = ParquetReader.builder(path).build();
+
+        // Read Parquet file and convert each record to JSON
+        List<String> jsonRecords = new ArrayList<>();
+        Object record;
+
+        while ((record = reader.read()) != null) {
+            String json = convertToJson(record);
+            jsonRecords.add(json);
+        }
+
+        return jsonRecords.toString(); // Combine and return all records as a JSON array
+    }
+
+    private String convertToJson(Object parquetRecord) {
+        // Use Jackson ObjectMapper to convert the Parquet record to JSON
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writeValueAsString(parquetRecord);
+    }
+}
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ParquetController {
+
+    private final S3ParquetService s3ParquetService;
+
+    @Autowired
+    public ParquetController(S3ParquetService s3ParquetService) {
+        this.s3ParquetService = s3ParquetService;
+    }
+
+    @GetMapping("/api/read-parquet")
+    public ResponseEntity<String> getParquetData(@RequestParam String bucketName, @RequestParam String key) {
+        try {
+            String jsonData = s3ParquetService.readParquetFile(bucketName, key);
+            return ResponseEntity.ok(jsonData);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error reading Parquet file");
+        }
+    }
+}
 
