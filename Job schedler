@@ -1,0 +1,60 @@
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class ShellScriptScheduler {
+
+    public static void main(String[] args) {
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+        // Schedule the task every 15 minutes
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                System.out.println("Executing shell script...");
+
+                // Run the shell script
+                executeShellScript("path/to/your/script.sh");
+
+                System.out.println("Shell script execution completed.");
+            } catch (Exception e) {
+                System.err.println("Error executing the shell script: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, 0, 15, TimeUnit.MINUTES); // Initial delay = 0, repeat every 15 minutes
+    }
+
+    private static void executeShellScript(String scriptPath) throws IOException {
+        // Command to execute the shell script
+        String[] command = {"/bin/bash", scriptPath};
+
+        // Use ProcessBuilder to execute the script
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Combine error and output streams
+        Process process = processBuilder.start();
+
+        // Log the output of the shell script
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+
+        // Wait for the process to finish and check the exit status
+        try {
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Shell script executed successfully.");
+            } else {
+                System.err.println("Shell script exited with error code: " + exitCode);
+            }
+        } catch (InterruptedException e) {
+            System.err.println("Shell script execution interrupted: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+}
