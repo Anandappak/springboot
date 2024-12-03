@@ -1,0 +1,104 @@
+
+create entity
+@Entity
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // Mandatory column
+    private Integer age; // Optional column
+    private String email; // Optional column
+
+    // Getters and Setters
+}
+
+
+create specific root entity
+import org.springframework.data.jpa.domain.Specification;
+
+public class UserSpecification {
+
+    public static Specification<User> filterUsers(String name, Integer age, String email) {
+        return (root, query, criteriaBuilder) -> {
+            // Start with the mandatory field
+            Predicate predicate = criteriaBuilder.equal(root.get("name"), name);
+
+            // Add optional fields if provided
+            if (age != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("age"), age));
+            }
+            if (email != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("email"), email));
+            }
+
+            return predicate;
+        };
+    }
+}
+
+create service
+import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.util.List;
+
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<User> filterUsers(String name, Integer age, String email) {
+        Specification<User> spec = UserSpecification.filterUsers(name, age, email);
+        return userRepository.findAll(spec);
+    }
+}
+
+controller
+
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/filter")
+    public List<User> filterUsers(@RequestBody FilterRequest filterRequest) {
+        return userService.filterUsers(filterRequest.getName(), filterRequest.getAge(), filterRequest.getEmail());
+    }
+}
+define request body
+public class FilterRequest {
+
+    private String name; // Mandatory
+    private Integer age; // Optional
+    private String email; // Optional
+
+    // Getters and Setters
+}
+
+quer public class FilterRequest {
+    @NotNull(message = "Name is mandatory")
+    private String name;
+    private Integer age;
+    private String email;
+}
+pagination 
+public Page<User> filterUsers(String name, Integer age, String email, Pageable pageable) {
+    Specification<User> spec = UserSpecification.filterUsers(name, age, email);
+    return userRepository.findAll(spec, pageable);
+}
+SELECT * FROM user WHERE name = 'John Doe' AND age = 30;
+
