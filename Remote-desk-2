@@ -1,0 +1,145 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Desktop Viewer</title>
+</head>
+<body>
+    <h1>Remote Desktop Viewer</h1>
+
+    <!-- Buttons to Select the IP Address for Remote Desktop -->
+    <button onclick="connectToRemoteDesk('192.168.1.100')">Connect to IP 1</button>
+    <button onclick="connectToRemoteDesk('192.168.1.101')">Connect to IP 2</button>
+
+    <!-- Image to Display the Remote Desktop -->
+    <img id="screen" style="width: 100%; height: auto; border: 1px solid black;" alt="Remote Desktop Screen">
+
+    <script>
+        let socket;
+
+        // Function to handle WebSocket connection to the selected IP
+        function connectToRemoteDesk(ipAddress) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close(); // Close any existing connection before opening a new one
+            }
+
+            // Open new WebSocket connection for the selected IP
+            socket = new WebSocket(`ws://${ipAddress}:8080/remote-desktop`);
+            
+            socket.onopen = function() {
+                console.log('Connected to ' + ipAddress);
+            };
+
+            socket.onmessage = function(event) {
+                // Receive the screen image as Base64 and display it
+                const imgElement = document.getElementById("screen");
+                imgElement.src = "data:image/jpeg;base64," + event.data;
+            };
+
+            socket.onclose = function() {
+                console.log('Disconnected from ' + ipAddress);
+            };
+
+            socket.onerror = function(error) {
+                console.log('Error occurred: ' + error.message);
+            };
+        }
+
+        // Event listener for click events (sending mouse click events to the server)
+        document.getElementById("screen").addEventListener('click', function(event) {
+            const rect = event.target.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                // Send click data to the server
+                const clickData = JSON.stringify({ action: 'click', x: x, y: y });
+                socket.send(clickData);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Component
+public class RemoteDesktopWebSocketHandler extends TextWebSocketHandler {
+
+    @Autowired
+    private ScreenCaptureService screenCaptureService;
+
+    private String currentIpAddress;
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        // You will receive an IP address here based on the button click from the frontend.
+        currentIpAddress = session.getUri().getHost();  // Extract IP address from session URL
+
+        // Start streaming the screen for the specific IP address
+        new Thread(() -> {
+            try {
+                while (session.isOpen()) {
+                    String screenData = screenCaptureService.captureScreen(currentIpAddress);
+                    session.sendMessage(new TextMessage(screenData)); // Send Base64-encoded screen data
+                    Thread.sleep(100); // 10 FPS
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        // Handle click or input messages
+        System.out.println("Received message from client: " + message.getPayload());
+        // Handle input based on `currentIpAddress` and perform necessary actions like simulating mouse click
+    }
+}
+
+
+@Service
+public class ScreenCaptureService {
+
+    public String captureScreen(String ipAddress) throws Exception {
+        // Logic to capture screen based on the remote machine's IP (you will need some agent running on those machines to enable this).
+        // For example, using a VNC or RDP protocol to grab the screen.
+
+        // For now, simulate capture from a specified IP
+        if ("192.168.1.100".equals(ipAddress)) {
+            return captureScreenFromMachine1();
+        } else if ("192.168.1.101".equals(ipAddress)) {
+            return captureScreenFromMachine2();
+        }
+        throw new Exception("Unknown IP Address");
+    }
+
+    // Simulated screen capture logic for different machines
+    private String captureScreenFromMachine1() {
+        return "Base64 encoded screen data for IP 1";
+    }
+
+    private String captureScreenFromMachine2() {
+        return "Base64 encoded screen data for IP 2";
+    }
+}
+
+@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new RemoteDesktopWebSocketHandler(), "/remote-desktop")
+                .setAllowedOrigins("*");
+    }
+}
+
