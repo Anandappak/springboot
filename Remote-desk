@@ -1,0 +1,127 @@
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-websocket</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ScreenCaptureService {
+    public String captureScreen() throws Exception {
+        Robot robot = new Robot();
+        Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        BufferedImage screenImage = robot.createScreenCapture(screenRect);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(screenImage, "jpeg", baos);
+        return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+}
+
+import java.awt.*;
+import java.awt.event.InputEvent;
+import org.springframework.stereotype.Service;
+
+@Service
+public class InputService {
+    private final Robot robot = new Robot();
+
+    public InputService() throws AWTException {}
+
+    public void processInput(String input) {
+        // Parse input JSON (e.g., {"action": "mouseMove", "x": 100, "y": 200})
+        // Example structure for simplicity
+        if (input.startsWith("mouseMove")) {
+            String[] parts = input.split(",");
+            int x = Integer.parseInt(parts[1]);
+            int y = Integer.parseInt(parts[2]);
+            robot.mouseMove(x, y);
+        } else if (input.startsWith("mouseClick")) {
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        }
+        // Add handling for keyboard events
+    }
+}
+
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RemoteDesktopWebSocketHandler extends TextWebSocketHandler {
+
+    private final ScreenCaptureService screenCaptureService;
+    private final InputService inputService;
+
+    public RemoteDesktopWebSocketHandler(ScreenCaptureService screenCaptureService, InputService inputService) {
+        this.screenCaptureService = screenCaptureService;
+        this.inputService = inputService;
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        System.out.println("Connection established: " + session.getId());
+
+        // Continuously send screen data
+        new Thread(() -> {
+            try {
+                while (session.isOpen()) {
+                    String screenData = screenCaptureService.captureScreen();
+                    session.sendMessage(new TextMessage(screenData));
+                    Thread.sleep(100); // Adjust frame rate (e.g., 10 FPS)
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        inputService.processInput(message.getPayload());
+    }
+}
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new RemoteDesktopWebSocketHandler(null, null), "/remote-desktop").setAllowedOrigins("*");
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Remote Desktop Control</title>
+    <style>
+        img {
+            width: 100%;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Remote Desktop Viewer</h1>
+    <img id="screen" alt="Remote Desktop">
+</body>
+</html>
