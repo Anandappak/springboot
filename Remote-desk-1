@@ -1,0 +1,133 @@
+
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-websocket</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>javax.imageio</groupId>
+        <artifactId>imageio-core</artifactId>
+        <version>1.0</version>
+    </dependency>
+</dependencies>
+
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ScreenCaptureService {
+
+    public String captureScreen() throws Exception {
+        Robot robot = new Robot();
+        Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+        BufferedImage screenImage = robot.createScreenCapture(screenRect);
+
+        // Convert the captured image into a JPEG and encode it as Base64
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(screenImage, "jpeg", baos);
+        byte[] imageData = baos.toByteArray();
+        return java.util.Base64.getEncoder().encodeToString(imageData);
+    }
+}
+
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RemoteDesktopWebSocketHandler extends TextWebSocketHandler {
+
+    @Autowired
+    private ScreenCaptureService screenCaptureService;
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        // Start sending screen data to client
+        new Thread(() -> {
+            try {
+                while (session.isOpen()) {
+                    String screenData = screenCaptureService.captureScreen();
+                    session.sendMessage(new TextMessage(screenData)); // Send Base64-encoded screen
+                    Thread.sleep(100); // 10 FPS - adjust for smoother performance
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        // Handle incoming input messages (keyboard, mouse actions)
+        String input = message.getPayload();
+        // You can add input handling here, i.e., simulate mouse clicks, movements, or key events
+        System.out.println("Received Input: " + input);
+    }
+}
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+@Configuration
+@EnableWebSocket
+public class WebSocketConfig implements WebSocketConfigurer {
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new RemoteDesktopWebSocketHandler(), "/remote-desktop")
+                .setAllowedOrigins("*");
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Desktop Viewer</title>
+</head>
+<body>
+    <h1>Remote Desktop Viewer</h1>
+    <img id="screen" style="width: 100%; height: auto; border: 1px solid black;">
+    <script>
+        // Connect to the WebSocket
+        const socket = new WebSocket('ws://localhost:8080/remote-desktop');
+        
+        socket.onopen = function() {
+            console.log("Connected to the server.");
+        };
+
+        socket.onmessage = function(event) {
+            // Display the screen image from the server (Base64 encoded JPEG)
+            document.getElementById("screen").src = "data:image/jpeg;base64," + event.data;
+        };
+
+        socket.onclose = function() {
+            console.log("Connection closed.");
+        };
+
+        // Optional: Capture user input like mouse clicks
+        document.getElementById("screen").addEventListener("click", function(event) {
+            const rect = event.target.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Send mouse click coordinates to server
+            const clickData = JSON.stringify({ type: "click", x, y });
+            socket.send(clickData);
+        });
+    </script>
+</body>
+</html>
